@@ -3,6 +3,22 @@ import re
 from context import add_to_pinned, create_context, add_to_history, build_prompt, get_active_character, save_session, load_session, unpin
 from engine import ask
 from characters import characters as characters_db
+from techniques import TECHNIQUES_DB
+
+def is_combat_move(user_input):
+    """Checks if the user input contains any technique name from the DB."""
+    for tech_name in TECHNIQUES_DB.keys():
+        if tech_name.lower() in user_input.lower():
+            return True, tech_name
+    return False, None
+
+def is_technique_allowed(tech_name, character):
+    """Checks if the technique exists in the character's unlocked list."""
+    allowed = character["state"]["unlocked_techniques"]
+    # We check if the technique found in the input is in the unlocked list
+    if tech_name in allowed:
+        return True
+    return False
 
 
 def _resolve_character(name):
@@ -30,6 +46,16 @@ def chat(context):
                 break
             continue
 
+        # --- THE REFEREE LAYER ---
+        is_combat, tech_name = is_combat_move(user_input)
+        
+        if is_combat:
+            active_char = get_active_character(context, context['user_character'])
+            if not is_technique_allowed(tech_name, active_char):
+                print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
+                continue # Kills the turn here, LLM never sees the illegal move
+
+        # --- THE RENDERER LAYER (LLM) ---
         prompt = build_prompt(context, user_input)
         raw_response = ask(prompt, context["system"])
 
