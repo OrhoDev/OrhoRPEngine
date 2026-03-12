@@ -1,16 +1,30 @@
-import requests 
+import requests
 
-def ask(prompt, system = ""):
+# Deterministic state-machine: low temperature and top_k for logical consistency
+TEMPERATURE = 0.1
+TOP_K = 20
+
+
+def ask(prompt, system=""):
     response = requests.post(
         "http://localhost:11434/api/generate",
-        json = {
+        json={
             "prompt": prompt,
-            "model": "qwen2.5:3b",
+            "model": "qwen2.5:7b",
             "system": system,
-            "stream": False
-        }
+            "stream": False,
+            "options": {
+                "temperature": TEMPERATURE,
+                "top_k": TOP_K,
+                "repeat_penalty": 1.1,
+            },
+        },
     )
-    return response.json()["response"]
+    
+    # Debug: Print the actual response structure
+    response_data = response.json()
+    
+    return response_data["response"]
 
 def validate(response, world_rules, scene, technique_summary):
     prompt = f"""You are a strict rule validator for a roleplay system.
