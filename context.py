@@ -17,8 +17,9 @@ def create_context(characters=[], response_length="medium", user_character="", w
     system = SYSTEM_PROMPTS[mode]
     return {
         "system": system,
+        "mode": mode,
         "history":[],
-        "max_his_size": 15, # Increased for 7B attention span
+        "max_his_size": 15, 
         "important":[],
         "characters": characters,
         "response_length": response_length,
@@ -101,6 +102,7 @@ def build_prompt(context, user_input):
 [SYSTEM COMMAND: EXECUTE SIMULATION TICK]
 ALLOWED TO ACT/SPEAK: {npc_string}
 FORBIDDEN TO ACT/SPEAK: {context['user_character']}
+REQUIRED: Each NPC listed above MUST take proactive action this turn - either executing a technique, making a significant movement, or engaging in meaningful dialogue.
 CRITICAL: The <narration> block must NEVER describe {context['user_character']}'s body, movements, eyes, hands, or internal state. Begin narration with environmental or mechanical consequence of the action only.
 Task: Start your response immediately with <analysis>. Do not write any text before the <analysis> tag.
 """

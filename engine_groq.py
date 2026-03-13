@@ -5,7 +5,7 @@ import os
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-TEMPERATURE = 0.8
+TEMPERATURE = 0.3
 
 def ask(prompt, system=""):
     response = requests.post(

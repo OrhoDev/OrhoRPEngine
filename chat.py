@@ -69,7 +69,6 @@ def chat(context):
     while True:
         user_input = input("\nUser: ")
         
-        # If user just hits enter, trigger an "Engine Tick"
         if not user_input.strip():
             user_input = "[NPC_TURN_TICK]"
         
@@ -92,15 +91,25 @@ def chat(context):
                 print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
                 continue
 
- 
         prompt = build_prompt(context, user_input)
-        raw_response = ask(prompt, context["system"])
         
-        analysis_match = re.search(r"<analysis>(.*?)</analysis>", raw_response, re.DOTALL)
-        narration_match = re.search(r"<narration>(.*?)</narration>", raw_response, re.DOTALL)
-        world_update_match = re.search(r"<world_update>(.*?)</world_update>", raw_response, re.DOTALL)
+        referee_prompt = prompt + "\n\n[LOGIC CHECK]: Analyze mechanical validity of user's action against provided JSON rules. Do not narrate. Output VALID or INVALID: [Reason]."
+        verdict = ask(referee_prompt, "You are a logic engine.")
+        
+        if "INVALID" in verdict.upper():
+            narration_prompt = f"{prompt}\n[INSTRUCTION]: The user's action is mechanically impossible. Do not narrate success. Narrate character's attempt and subsequent failure/backlash, citing technical reason: {verdict}"
+            response = ask(narration_prompt, context["system"])
+        else:
+            response = ask(prompt, context["system"])
+            
+        if len(response.split('\n')) < 5: 
+            elaboration_prompt = f"{prompt}\n[INSTRUCTION]: The previous scene lacked detail. Make sure to include more dialogue, visceral physical reactions, and specific movement details for characters in your next response"
+            response = ask(elaboration_prompt, context["system"])
+            
+        analysis_match = re.search(r"<analysis>(.*?)</analysis>", response, re.DOTALL)
+        narration_match = re.search(r"<narration>(.*?)</narration>", response, re.DOTALL)
+        world_update_match = re.search(r"<world_update>(.*?)</world_update>", response, re.DOTALL)
 
-  
         if world_update_match:
             world_update = world_update_match.group(1).strip()
             if world_update and world_update.lower() != "none":
@@ -108,10 +117,6 @@ def chat(context):
                     context["world_state"] += f"\n{world_update}"
                 else:
                     context["world_state"] = world_update
-
-        verdict_match = re.search(r"Verdict:\s*(VALID|INVALID)", analysis_match.group(1)) if analysis_match else None
-        if not verdict_match or verdict_match.group(1) != "VALID":
-            continue
 
         if narration_match:
             final_output = narration_match.group(1).strip()
