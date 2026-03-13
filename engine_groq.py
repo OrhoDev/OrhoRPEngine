@@ -5,7 +5,7 @@ import os
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-TEMPERATURE = 0.35
+TEMPERATURE = 0.8
 
 def ask(prompt, system=""):
     response = requests.post(
@@ -27,7 +27,6 @@ def ask(prompt, system=""):
     return response.json()["choices"][0]["message"]["content"]
 
 def validate(response, world_rules, scene, technique_summary):
-    # kept for compatibility, uses same endpoint
     prompt = f"""You are a strict rule validator for a roleplay system.
 <response_to_validate>{response}</response_to_validate>
 Does this response violate world rules or use techniques a character doesn't have? Answer YES or NO only."""
