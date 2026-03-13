@@ -2,11 +2,19 @@ from characters import char_to_prompt
 import json
 from techniques import get_technique_details
 from world import JUJUTSU_WORLD
+from pathlib import Path
 
+BASE = Path(__file__).parent
+
+def load_system_prompts():
+    with open(BASE / "system_prompts.json", "r") as f:
+        return json.load(f)
+
+SYSTEM_PROMPTS = load_system_prompts()
 
 
 def create_context(characters=[], response_length="medium", user_character="", world_rules="", scene="", mode = "local"):
-    system = JUJUTSU_ENGINE_SYSTEM_PROMPT_API if mode == "api" else JUJUTSU_ENGINE_SYSTEM_PROMPT_LOCAL
+    system = SYSTEM_PROMPTS[mode]
     return {
         "system": system,
         "history":[],
@@ -54,9 +62,9 @@ def build_prompt(context, user_input):
     combat_keywords =["attack", "domain", "expand", "hit", "kill", "fight", "technique"]
     if any(k in user_input.lower() or k in context['scene'].lower() for k in combat_keywords):
         world_briefing.append(JUJUTSU_WORLD["barriers"])
-        world_briefing.append(JUJUTSU_WORLD["combat"])
+        world_briefing.append(JUJUTSU_WORLD["advanced_operations"])
     else:
-        world_briefing.append(JUJUTSU_WORLD["mechanics"])
+        world_briefing.append(JUJUTSU_WORLD["vows"])
         
     if any(loc in context['scene'].lower() for loc in["shibuya", "high", "tombs", "headquarters"]):
         world_briefing.append(JUJUTSU_WORLD["locations"])

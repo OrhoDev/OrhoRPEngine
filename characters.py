@@ -13,26 +13,29 @@ def get_character(name):
     return characters[name.lower().strip()]
 
 def char_to_prompt(character, mode="local"):
-    if mode == "local":
-        condition_text = ", ".join(character['state']['conditions']) or 'none'
-        return f"""## {character['name']}
-**Goals:** {', '.join(character.get('goals', [])) or 'none'}
-**Enemies:** {', '.join(character.get('enemies', [])) or 'none'}
-**Base Techniques:** {', '.join(character['base_techniques']) or 'none'}
-**Unlocked Techniques:** {', '.join(character['state']['unlocked_techniques']) or 'none'}
-**Conditions:** {condition_text}"""
-
     condition_text = ", ".join(character['state']['conditions']) or 'none'
-    relationships = [f"{k}: {v}" for k, v in character["state"]["relationships"].items()]
+    base_techniques = ", ".join(character['base_techniques']) or 'none'
+    unlocked_techniques = ", ".join(character['state']['unlocked_techniques']) or 'none'
+
+    if mode == "local":
+        # Local
+        return f"""## {character['name']}
+**Base Techniques:** {base_techniques}
+**Unlocked Techniques:** {unlocked_techniques}
+**Conditions:** {condition_text}
+**Combat Behavior:** {character.get('combat_behavior', 'none')}"""
+
+    # API 
+    relationships = [f"{k}: {v}" for k, v in character.get('relationships', {}).items()]
     return f"""## {character['name']}
-**Age:** {character['age']}
-**Appearance:** {character['appearance']}
-**Personality:** {character['personality']}
+**Age:** {character.get('age', 'unknown')}
+**Appearance:** {character.get('appearance', 'none')}
 **Goals:** {', '.join(character.get('goals', [])) or 'none'}
 **Enemies:** {', '.join(character.get('enemies', [])) or 'none'}
-**Base Techniques:** {', '.join(character['base_techniques']) or 'none'}
-**Unlocked Techniques:** {', '.join(character['state']['unlocked_techniques']) or 'none'}
-**Conditions:** {condition_text}
 **Relationships:** {', '.join(relationships) or 'none'}
+**Base Techniques:** {base_techniques}
+**Unlocked Techniques:** {unlocked_techniques}
+**Conditions:** {condition_text}
 **Form:** {character['state']['form']}
-**Awakening:** {character['state']['awakening'] or 'none'}"""
+**Psychology:** {character.get('psychology_and_rp', 'none')}
+**Combat Behavior:** {character.get('combat_behavior', 'none')}"""
