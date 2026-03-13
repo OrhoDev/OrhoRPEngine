@@ -1,6 +1,6 @@
 import requests
 
-# Deterministic state-machine: low temperature and top_k for logical consistency
+
 TEMPERATURE = 0.30
 TOP_K = 40
 
@@ -22,7 +22,6 @@ def ask(prompt, system=""):
         },
     )
     
-    # Debug: Print the actual response structure
     response_data = response.json()
     
     return response_data["response"]

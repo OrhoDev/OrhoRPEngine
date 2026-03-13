@@ -1,10 +1,10 @@
-# --- IN chat.py ---
+
 import re
 from context import add_to_pinned, create_context, add_to_history, build_prompt, get_active_character, save_session, load_session, unpin
-from characters import characters as characters_db
-from techniques import TECHNIQUES_DB
+from characters import characters
+from techniques import load_db
 
-# Dynamic engine import based on mode
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -20,17 +20,16 @@ def is_combat_move(user_input):
     clean_input = user_input.lower().replace("!", "").replace(".", "").strip()
     clean_input = clean_input.strip("*").strip('"')
     
-    # Try to extract technique name from quotes first
-    import re
     quoted_match = re.search(r'"([^"]+)"', user_input)
     if quoted_match:
         extracted_tech = quoted_match.group(1).strip().lower()
-        for tech_name in TECHNIQUES_DB.keys():
+        techniques_db = load_db(ENGINE_MODE)
+        for tech_name in techniques_db.keys():
             if tech_name.lower() == extracted_tech:
                 return True, tech_name
     
-    # If no quotes found, try exact match with cleaned input
-    for tech_name in TECHNIQUES_DB.keys():
+    techniques_db = load_db(ENGINE_MODE)
+    for tech_name in techniques_db.keys():
         if tech_name.lower() == clean_input.strip().lower():
             return True, tech_name
             
@@ -41,15 +40,12 @@ def is_technique_allowed(tech_name, character):
     if character is None:
         return False
     
-    # Ensure character has the required structure
     base_techniques = character.get("base_techniques", [])
     state = character.get("state", {})
     unlocked_techniques = state.get("unlocked_techniques", [])
     
-    # Combine both lists so the Referee knows both are valid
     all_allowed = base_techniques + unlocked_techniques
     
-    # Use exact case-insensitive matching for the "Activation Phrase"
     if any(tech.lower() == tech_name.lower() for tech in all_allowed):
         return True
     return False
@@ -61,9 +57,9 @@ def _resolve_character(name):
         return None
     name = name.strip()
     key = name.lower()
-    if key in characters_db:
-        return characters_db[key]
-    for c in characters_db.values():
+    if key in characters:
+        return characters[key]
+    for c in characters.values():
         if c["name"].lower() == key:
             return c
     return None
@@ -85,7 +81,6 @@ def chat(context):
                 break
             continue
 
-        # --- THE REFEREE LAYER ---
         is_combat, tech_name = is_combat_move(user_input)
         
         if is_combat:
@@ -95,18 +90,17 @@ def chat(context):
                 continue
             if not is_technique_allowed(tech_name, active_char):
                 print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
-                continue # Kills the turn here, LLM never sees the illegal move
+                continue
 
-        # --- THE RENDERER LAYER (LLM) ---
+ 
         prompt = build_prompt(context, user_input)
         raw_response = ask(prompt, context["system"])
-        print(f"\n--- DEBUG: RAW RESPONSE ---\n{raw_response}\n---------------------------") # ADD THIS
         
         analysis_match = re.search(r"<analysis>(.*?)</analysis>", raw_response, re.DOTALL)
         narration_match = re.search(r"<narration>(.*?)</narration>", raw_response, re.DOTALL)
         world_update_match = re.search(r"<world_update>(.*?)</world_update>", raw_response, re.DOTALL)
 
-        # Parse world state updates
+  
         if world_update_match:
             world_update = world_update_match.group(1).strip()
             if world_update and world_update.lower() != "none":
@@ -115,14 +109,8 @@ def chat(context):
                 else:
                     context["world_state"] = world_update
 
-        # NEW: Always print the Engine's internal logic so you can monitor it
-        if analysis_match:
-            print(f"\n[ENGINE LOGIC]:\n{analysis_match.group(1).strip()}")
-
-        # Tightened check: Only look at verdict line
         verdict_match = re.search(r"Verdict:\s*(VALID|INVALID)", analysis_match.group(1)) if analysis_match else None
         if not verdict_match or verdict_match.group(1) != "VALID":
-            print("\n[Engine] Blocked: action ruled INVALID.")
             continue
 
         if narration_match:

@@ -1,4 +1,4 @@
-from characters import get_character, char_to_prompt
+from characters import characters, get_character, char_to_prompt
 from chat import chat
 from context import create_context
 from world import JUJUTSU_WORLD
@@ -14,7 +14,6 @@ char_select = input("WHO IS PRESENT?\n").split(",")
 user_char = input("WHO ARE YOU?\n")
 scene = input("WHAT IS THE SCENE?\n")
 
-# Add all present characters plus the user character
 characters = [get_character(name.strip()) for name in char_select]
 user_character = get_character(user_char.strip())
 if user_character and user_character not in characters:
