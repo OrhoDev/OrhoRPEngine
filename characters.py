@@ -8,7 +8,9 @@ choso = {
     "height": "Unknown",
     "eye_color": "Dark brown",
     "fav_food": "Unknown",
+    "goals": ["Protect Yuji Itadori", "Eliminate Kenjaku", "Avenge deceased brothers"],
     "base_techniques":["Blood Manipulation", "Flowing Red Scale", "Flowing Red Scale: Stack", "Supernova", "Blood Meteorite"],
+    "enemies": ["Kenjaku, Uraume, Sukuna"],
     "state": {
         "form": "base",
         "conditions":[],
@@ -31,6 +33,8 @@ geto = {
     "height": "190 cm",
     "eye_color": "Dark",
     "fav_food": "Unknown",
+    "goals": ["Eliminate all non-sorcerers", "Create sorcerer-only utopia", "Destroy Gojo's ideology"],
+    "enemies": ["Satoru Gojo", "Yuta Okkotsu", "Jujutsu Higher-ups", "Hiroto Akagi"],
     "base_techniques":["Cursed Spirit Manipulation", "Uzumaki", "Maximum: Uzumaki"],
     "state": {
         "form": "base",
@@ -53,6 +57,8 @@ hiroto = {
     "height": "183 cm",
     "eye_color": "Dark, narrow",
     "fav_food": "Unknown",
+    "goals": ["Protect Aiko Akagi at all costs", "Master Legend Manifestation Technique", "Never show weakness"],
+    "enemies": ["Geto, Cursed Spirits"],
     "base_techniques":["Legend Manifestation Technique", "Command Hierarchy", "Technique Synergy", "Below-Average Close Quarters Combat"],
     "state": {
         "form": "base",
@@ -74,6 +80,8 @@ gojo = {
     "height": "190 cm",
     "eye_color": "Striking, glowing light blue",
     "fav_food": "Sweets",
+    "goals": ["Eliminate all non-sorcerers", "Create sorcerer-only utopia", "Destroy Gojo's ideology"],
+    "enemies": ["Suguru Geto (deceased)", "Ryomen Sukuna"],
     "base_techniques":["Limitless", "Infinity", "Cursed Technique Lapse: Blue", "Cursed Technique Reversal: Red", "Hollow Technique: Purple", "Six Eyes"],
     "state": {
         "form": "base",
@@ -97,6 +105,8 @@ yuji = {
     "height": "173 cm",
     "eye_color": "Light brown",
     "fav_food": "Rice bowls and noodles",
+    "goals": ["Protect his friends", "Master Cursed Energy", "Never show weakness"],
+    "enemies": ["Mahito, Hanami, Eso, Kechizu"],
     "base_techniques":["Superhuman Physicals", "Divergent Fist", "Black Flash"],
     "state": {
         "form": "base",
@@ -120,6 +130,8 @@ megumi = {
     "height": "175 cm",
     "eye_color": "Dark Blue",
     "fav_food": "Food that pairs well with ginger",
+    "goals": ["Protect his friends", "Master Ten Shadows Technique", "Never show weakness"],
+    "enemies": ["Toji Zenin, Hajime Kashimo"],
     "base_techniques":["Ten Shadows Technique", "Divine Dogs", "Nue", "Rabbit Escape", "Shadow Manipulation"],
     "state": {
         "form": "base",
@@ -143,6 +155,8 @@ sukuna = {
     "height": "Variable",
     "eye_color": "Red",
     "fav_food": "Human flesh",
+    "goals": ["Destroy humanity", "Master Cursed Energy", "Never show weakness"],
+    "enemies": ["Gojo Clan, Tokyo Jujutsu High, Kashimo"],
     "base_techniques":["Shrine", "Dismantle", "Cleave", "Furnace (Divine Flame)", "Reverse Cursed Technique"],
     "state": {
         "form": "incarnated",
@@ -166,6 +180,8 @@ yuta = {
     "height": "175 cm",
     "eye_color": "Dark blue",
     "fav_food": "Salted cabbage",
+    "goals": ["Protect his friends", "Master Rika's cursed energy", "Never show weakness"],
+    "enemies": ["Suguru Geto, Sukuna"],
     "base_techniques":["Rika", "Copy", "Immense Cursed Energy", "Reverse Cursed Technique Output"],
     "state": {
         "form": "base",
@@ -189,6 +205,8 @@ maki = {
     "height": "170 cm",
     "eye_color": "Hazel",
     "fav_food": "Junk food",
+    "goals": ["Destroy the Zenin clan", "Master Heavenly Restriction", "Never show weakness"],
+    "enemies": ["Zenin Clan (remnants)"],
     "base_techniques":["Heavenly Restriction (Incomplete)", "Master Weapons Specialist"],
     "state": {
         "form": "awakened",
@@ -226,7 +244,9 @@ def char_to_prompt(character):
 **Personality:** {character['personality']}
 **Height:** {character['height']}
 **Eye Color:** {character['eye_color']}
-**Favorite Food:** {character['fav_food']}"""
+**Favorite Food:** {character['fav_food']}
+**Goals:** {', '.join(character.get('goals', [])) or 'none'}
+**Enemies:** {', '.join(character.get('enemies', [])) or 'none'}"""
     
     condition_text = ", ".join(character['state']['conditions']) or 'none'
     b_techniques_text = ", ".join(character["base_techniques"]) or "none"

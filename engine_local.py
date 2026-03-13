@@ -1,8 +1,8 @@
 import requests
 
 # Deterministic state-machine: low temperature and top_k for logical consistency
-TEMPERATURE = 0.1
-TOP_K = 20
+TEMPERATURE = 0.30
+TOP_K = 40
 
 
 def ask(prompt, system=""):
@@ -10,10 +10,11 @@ def ask(prompt, system=""):
         "http://localhost:11434/api/generate",
         json={
             "prompt": prompt,
-            "model": "qwen2.5:7b",
+            "model": "hermes3:latest",
             "system": system,
             "stream": False,
             "options": {
+                "num_ctx": 4096,
                 "temperature": TEMPERATURE,
                 "top_k": TOP_K,
                 "repeat_penalty": 1.1,

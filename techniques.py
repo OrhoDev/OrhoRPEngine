@@ -6,7 +6,7 @@ TECHNIQUES_DB = {
     "Command Hierarchy": "Hiroto commands bound mythologies via Direct Command (precise), Tactical Command (goal-oriented), or Autonomous Mode (instinct-based).",
     "Technique Synergy": "Combining different mythological entities (e.g., Serpent + Storm deity) to create complex, multi-elemental interactions.",
     "Below-Average Close Quarters Combat": "Hiroto fights as a backline battlefield controller. He is highly vulnerable in direct physical melee, relying purely on evasion and basic cursed energy reinforcement to escape.",
-    "Domain Expansion: Mythological Convergence Field": "- CONCEPT: A barrier domain that saturates the area in mythological energy.\n- EFFECT: Hiroto becomes a secondary vessel for active shikigami, allowing him to personally dual-cast their techniques.\n- LIMITATION: Extreme cursed energy drain; risk of technique overload/backlash.",
+    "Domain Expansion: Mythological Convergence Field": "- CONCEPT: A barrier domain that saturates the area in mythological energy.\n- EFFECT: Hiroto becomes a secondary vessel for active shikigami, allowing him to personally dual-cast their techniques.\n- LIMITATION: Extreme cursed energy drain and technique burnout after expansion.",
     "Technique Convergence": "The secondary-vessel effect of his Domain. Duplicates every active technique, forcing the enemy to fight the shikigami AND Hiroto wielding the exact same ability simultaneously.",
 
     # --- CHOSO & GETO ---
