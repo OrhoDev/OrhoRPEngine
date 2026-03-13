@@ -237,34 +237,28 @@ characters = {
 def get_character(name):
     return characters[name.lower().strip()]
 
-def char_to_prompt(character):
-    prompt = f"""## {character['name']}
+def char_to_prompt(character, mode="local"):
+    if mode == "local":
+        condition_text = ", ".join(character['state']['conditions']) or 'none'
+        return f"""## {character['name']}
+**Goals:** {', '.join(character.get('goals', [])) or 'none'}
+**Enemies:** {', '.join(character.get('enemies', [])) or 'none'}
+**Base Techniques:** {', '.join(character['base_techniques']) or 'none'}
+**Unlocked Techniques:** {', '.join(character['state']['unlocked_techniques']) or 'none'}
+**Conditions:** {condition_text}"""
+
+    # API mode — full data
+    condition_text = ", ".join(character['state']['conditions']) or 'none'
+    relationships = [f"{k}: {v}" for k, v in character["state"]["relationships"].items()]
+    return f"""## {character['name']}
 **Age:** {character['age']}
 **Appearance:** {character['appearance']}
 **Personality:** {character['personality']}
-**Height:** {character['height']}
-**Eye Color:** {character['eye_color']}
-**Favorite Food:** {character['fav_food']}
 **Goals:** {', '.join(character.get('goals', [])) or 'none'}
-**Enemies:** {', '.join(character.get('enemies', [])) or 'none'}"""
-    
-    condition_text = ", ".join(character['state']['conditions']) or 'none'
-    b_techniques_text = ", ".join(character["base_techniques"]) or "none"
-    u_techniques_text = ", ".join(character["state"]["unlocked_techniques"]) or "none"
-    
-    relationships =[f"{key}: {value}" for key, value in character["state"]["relationships"].items()]
-    relationship_text = ", ".join(relationships) or "none"
-
-    return f"""{prompt}
-
-### Base Techniques:
-{b_techniques_text}
-
-### Unlocked Techniques:
-{u_techniques_text}
-
-### Current State:
+**Enemies:** {', '.join(character.get('enemies', [])) or 'none'}
+**Base Techniques:** {', '.join(character['base_techniques']) or 'none'}
+**Unlocked Techniques:** {', '.join(character['state']['unlocked_techniques']) or 'none'}
 **Conditions:** {condition_text}
-**Relationships:** {relationship_text}
+**Relationships:** {', '.join(relationships) or 'none'}
 **Form:** {character['state']['form']}
 **Awakening:** {character['state']['awakening'] or 'none'}"""

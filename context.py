@@ -3,14 +3,14 @@ import json
 from techniques import TECHNIQUES_DB
 from world import JUJUTSU_WORLD
 
-def get_technique_details(technique_list):
+def get_technique_details(technique_list, mode="local"):
+    from techniques import TECHNIQUES_DB_API, TECHNIQUES_DB_LOCAL
+    db = TECHNIQUES_DB_API if mode == "api" else TECHNIQUES_DB_LOCAL
     details = []
     for name in technique_list:
-        tech_d = TECHNIQUES_DB.get(name, "No technique found")
+        tech_d = db.get(name, TECHNIQUES_DB_LOCAL.get(name, "No technique found"))
         details.append(f"**{name}**: {tech_d}")
-    
     return "\n".join(details)
-
 
 
 JUJUTSU_ENGINE_SYSTEM_PROMPT = """You are a JUJUTSU KAISEN SIMULATION ENGINE. A mechanical state-processor and neutral narrator.
@@ -117,15 +117,16 @@ def load_session(filename = "session.json"):
  
 # --- IN context.py ---
 def build_prompt(context, user_input):
+    mode = context.get("mode", "local")
     active = context["characters"]
-    char_text = "\n\n".join([char_to_prompt(c) for c in active])
+    char_text = "\n\n".join([char_to_prompt(c, mode) for c in active])
 
     # 1. Technique Extraction
     technique_names = set()
     for c in active:
         technique_names.update(c.get("base_techniques",[]))
         technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
-    mechanics_block = get_technique_details(list(technique_names))
+    mechanics_block = get_technique_details(list(technique_names), mode = mode)
 
     # 2. Dynamic World Rules Injection
     world_briefing =[JUJUTSU_WORLD["physics"]]
