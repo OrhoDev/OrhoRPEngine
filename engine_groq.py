@@ -5,9 +5,17 @@ import os
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-TEMPERATURE = 0.3
+TEMPERATURE = 0.5
 
-def ask(prompt, system=""):
+def ask(prompt, system="", few_shot=None):
+    messages = [{"role": "system", "content": system}]
+
+    if few_shot:
+        messages.append({"role": "user", "content": few_shot["input"]})
+        messages.append({"role": "assistant", "content": few_shot["output"]})
+
+    messages.append({"role": "user", "content": prompt})
+
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers={
@@ -16,10 +24,7 @@ def ask(prompt, system=""):
         },
         json={
             "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt}
-            ],
+            "messages": messages,
             "temperature": TEMPERATURE,
             "max_tokens": 1024,
         }

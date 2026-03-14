@@ -1,9 +1,10 @@
-
 import re
-from context import add_to_pinned, create_context, add_to_history, build_prompt, get_active_character, save_session, load_session, unpin
+from context import (add_to_pinned, create_context, add_to_history,
+                     build_prompt, build_decision_prompt, get_active_character,
+                     save_session, load_session, unpin, SYSTEM_PROMPTS,
+                     EXAMPLES, _detect_tier, _update_seen_techniques)
 from characters import characters
 from techniques import load_db
-
 
 import sys
 import os
@@ -16,10 +17,11 @@ except ImportError:
     from engine_local import ask, validate
     ENGINE_MODE = "local"
 
+
 def is_combat_move(user_input):
     clean_input = user_input.lower().replace("!", "").replace(".", "").strip()
     clean_input = clean_input.strip("*").strip('"')
-    
+
     quoted_match = re.search(r'"([^"]+)"', user_input)
     if quoted_match:
         extracted_tech = quoted_match.group(1).strip().lower()
@@ -27,32 +29,25 @@ def is_combat_move(user_input):
         for tech_name in techniques_db.keys():
             if tech_name.lower() == extracted_tech:
                 return True, tech_name
-    
+
     techniques_db = load_db(ENGINE_MODE)
     for tech_name in techniques_db.keys():
         if tech_name.lower() == clean_input.strip().lower():
             return True, tech_name
-            
+
     return False, None
 
+
 def is_technique_allowed(tech_name, character):
-    """Checks if the technique exists in either base or unlocked lists."""
     if character is None:
         return False
-    
     base_techniques = character.get("base_techniques", [])
-    state = character.get("state", {})
-    unlocked_techniques = state.get("unlocked_techniques", [])
-    
+    unlocked_techniques = character.get("state", {}).get("unlocked_techniques", [])
     all_allowed = base_techniques + unlocked_techniques
-    
-    if any(tech.lower() == tech_name.lower() for tech in all_allowed):
-        return True
-    return False
+    return any(tech.lower() == tech_name.lower() for tech in all_allowed)
 
 
 def _resolve_character(name):
-    """Resolve name to a character from the full database (by key or by character name)."""
     if not name:
         return None
     name = name.strip()
@@ -68,10 +63,10 @@ def _resolve_character(name):
 def chat(context):
     while True:
         user_input = input("\nUser: ")
-        
+
         if not user_input.strip():
             user_input = "[NPC_TURN_TICK]"
-        
+
         if user_input.startswith("/"):
             result = handle_command(user_input, context)
             if isinstance(result, dict):
@@ -81,7 +76,6 @@ def chat(context):
             continue
 
         is_combat, tech_name = is_combat_move(user_input)
-        
         if is_combat:
             active_char = get_active_character(context, context['user_character'])
             if active_char is None:
@@ -91,42 +85,42 @@ def chat(context):
                 print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
                 continue
 
-        prompt = build_prompt(context, user_input)
-        
-        referee_prompt = prompt + "\n\n[LOGIC CHECK]: Analyze mechanical validity of user's action against provided JSON rules. Do not narrate. Output VALID or INVALID: [Reason]."
-        verdict = ask(referee_prompt, "You are a logic engine.")
-        
+        referee_prompt = build_prompt(context, user_input) + \
+            "\n\n[LOGIC CHECK]: Analyze mechanical validity of user's action against provided rules. Do not narrate. Output VALID or INVALID: [Reason]."
+        verdict = ask(referee_prompt, "You are a logic engine. Output only VALID or INVALID followed by a reason.")
+
         if "INVALID" in verdict.upper():
-            narration_prompt = f"{prompt}\n[INSTRUCTION]: The user's action is mechanically impossible. Do not narrate success. Narrate character's attempt and subsequent failure/backlash, citing technical reason: {verdict}"
-            response = ask(narration_prompt, context["system"])
+            failure_prompt = build_prompt(context, user_input) + \
+                f"\n[INSTRUCTION]: The user's action is mechanically impossible. Narrate the attempt and failure only. Technical reason: {verdict}"
+            response = ask(failure_prompt, context["system"])
         else:
-            response = ask(prompt, context["system"])
-            
-        if len(response.split('\n')) < 5: 
-            elaboration_prompt = f"{prompt}\n[INSTRUCTION]: The previous scene lacked detail. Make sure to include more dialogue, visceral physical reactions, and specific movement details for characters in your next response"
-            response = ask(elaboration_prompt, context["system"])
-            
-        analysis_match = re.search(r"<analysis>(.*?)</analysis>", response, re.DOTALL)
+            # Pass 1 — NPC Decision Engine
+            npc_decisions = ask(
+                build_decision_prompt(context, user_input),
+                SYSTEM_PROMPTS["decision"]
+            )
+
+            # Pass 2 — Narrator with few-shot
+            tier = _detect_tier(user_input, context)
+            few_shot = EXAMPLES.get(tier)
+            narration_prompt = build_prompt(context, user_input, npc_decisions=npc_decisions)
+            response = ask(narration_prompt, context["system"], few_shot=few_shot)
+
         narration_match = re.search(r"<narration>(.*?)</narration>", response, re.DOTALL)
         world_update_match = re.search(r"<world_update>(.*?)</world_update>", response, re.DOTALL)
 
         if world_update_match:
             world_update = world_update_match.group(1).strip()
             if world_update and world_update.lower() != "none":
-                if context["world_state"]:
-                    context["world_state"] += f"\n{world_update}"
-                else:
-                    context["world_state"] = world_update
+                context["world_state"] = (context["world_state"] + "\n" + world_update).strip()
 
-        if narration_match:
-            final_output = narration_match.group(1).strip()
-        else:
-            final_output = "(No narration block returned.)"
-
+        final_output = narration_match.group(1).strip() if narration_match else "(No narration block returned.)"
         print(f"\n[NARRATION]:\n{final_output}")
+
+        _update_seen_techniques(user_input, context)
         add_to_history(context, user_input)
         add_to_history(context, final_output)
-        
+
 
 def handle_command(user_input, context):
     parts = user_input.split(" ", 1)
@@ -163,7 +157,6 @@ def handle_command(user_input, context):
         context["scene"] = rest or ""
         print("Scene updated.")
         return
-
     if command == "/unlock":
         character = get_active_character(context, arg2)
         if character and arg1 not in character["state"]["unlocked_techniques"]:
@@ -193,7 +186,3 @@ def handle_command(user_input, context):
         if context["important"]:
             removed = context["important"].pop()
             print(f"Unpinned {removed}")
-
-
-
-        
