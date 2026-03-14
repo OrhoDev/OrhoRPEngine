@@ -38,4 +38,5 @@ def char_to_prompt(character, mode="local"):
 **Conditions:** {condition_text}
 **Form:** {character['state']['form']}
 **Psychology:** {character.get('psychology_and_rp', 'none')}
+**Speech Style:** {character.get('speech_style', 'none')}
 **Combat Behavior:** {character.get('combat_behavior', 'none')}"""

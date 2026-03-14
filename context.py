@@ -32,7 +32,7 @@ def create_context(characters=[], response_length="medium", user_character="", w
         "world_state": "",
         "scene": scene,
         "user_character": user_character,
-        "seen_techniques": []  # tracks techniques already debuted this session
+        "seen_techniques": []
     }
 
 def add_to_history(context, message):
@@ -111,13 +111,19 @@ def build_decision_prompt(context, user_input):
     user = context["user_character"].lower()
     npcs = [c for c in context["characters"] if c["name"].lower() != user]
 
+    if not npcs:
+        return ""
+
     npc_blocks = []
     for npc in npcs:
         goals = ", ".join(npc.get("goals", [])) or "none"
         enemies = ", ".join(npc.get("enemies", [])) or "none"
+
+        # Relationships are at the top level in the new characters.json
         relationships = ", ".join(
-            [f"{k}: {v}" for k, v in npc.get("state", {}).get("relationships", {}).items()]
+            [f"{k}: {v}" for k, v in npc.get("relationships", {}).items()]
         ) or "none"
+
         base_techniques = ", ".join(npc.get("base_techniques", [])) or "none"
         unlocked_techniques = ", ".join(
             npc.get("state", {}).get("unlocked_techniques", [])
@@ -129,6 +135,7 @@ def build_decision_prompt(context, user_input):
 **Enemies:** {enemies}
 **Relationships:** {relationships}
 **Psychology:** {npc.get("psychology_and_rp", npc.get("personality", "none"))}
+**Speech Style:** {npc.get("speech_style", "none")}
 **Combat Behavior:** {npc.get("combat_behavior", "none")}
 **Available Techniques:** {base_techniques}, {unlocked_techniques}
 **Conditions:** {conditions}""")
@@ -163,9 +170,11 @@ Output ONLY raw JSON. No preamble. No explanation. No markdown fences.
 {json_template}
 
 RULES:
-- action: A concrete technique or movement from their Available Techniques list. Not a description — a decision. ("Deploys Blood Meteorite at Hiroto" not "considers attacking")
+- You are deciding actions for NPCs ONLY. {context["user_character"]} is the player — never assign actions, dialogue, or thoughts to them under any circumstances.
+- Read the user's action carefully. If it is dialogue, movement, or observation — the NPC responds in kind. Do not escalate to combat unless the user's action is explicitly hostile or names a technique.
+- action: A concrete technique or movement from their Available Techniques list. If the user is not attacking, this should be a physical reaction or dialogue beat — not a technique activation.
 - dialogue: One line maximum. Must match their Psychology exactly. Empty string if silent.
-- target: Who they are acting against.
+- target: Who they are acting against. If non-combat, use "none".
 - If the NPC has no valid counter, they physically react — they do not stand still.
 - Base every decision strictly on Goals, Enemies, Combat Behavior, and Psychology.
 - Never invent techniques not listed under Available Techniques.
@@ -203,11 +212,7 @@ def build_prompt(context, user_input, npc_decisions=""):
 {npc_decisions}
 </resolved_npc_actions>""" if npc_decisions else ""
 
-
-
-    return f"""
-
-<engine_data>
+    return f"""<engine_data>
 # WORLD RULES
 {world_text}
 

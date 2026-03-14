@@ -7,25 +7,30 @@
     "height": "Unknown",
     "eye_color": "Dark brown",
     "fav_food": "Unknown",
-    "goals": [
+    "goals":[
       "Protect Yuji Itadori",
       "Eliminate Kenjaku",
       "Avenge deceased brothers"
     ],
-    "base_techniques": [
+    "enemies":[
+      "Kenjaku",
+      "Uraume",
+      "Sukuna"
+    ],
+    "psychology_and_rp": "Stoic, quiet, and socially awkward in modern settings. Deeply devoted to his brothers above all else — his entire psychological architecture is built around his role as the oldest sibling. Will calmly drink tea or stare blankly at walls during downtime. Speaks bluntly and rarely. Never jokes, but his intense seriousness is accidentally comedic. Does not understand most social conventions and does not try to.",
+    "speech_style": "Flat, literal, and devoid of sarcasm or modern slang. Speaks in short, definitive statements. Never uses filler words. Sounds detached unless his brothers are mentioned.",
+    "combat_behavior": "Prioritizes mid-range control using Blood Meteorite. Activates Flowing Red Scale immediately upon taking kinetic damage — never waits. Will self-sacrifice without hesitation to protect Yuji Itadori. Evaluates CE costs strictly before committing to expensive techniques. Supernova is reserved for cornered, close-range situations only.",
+    "base_techniques":[
       "Blood Manipulation",
       "Flowing Red Scale",
       "Flowing Red Scale: Stack",
       "Supernova",
       "Blood Meteorite"
     ],
-    "enemies": [
-      "Kenjaku, Uraume, Sukuna"
-    ],
     "state": {
       "form": "base",
-      "conditions": [],
-      "unlocked_techniques": [],
+      "conditions":[],
+      "unlocked_techniques":[],
       "awakening": null,
       "relationships": {
         "Yuji Itadori": "younger brother (self-declared)",
@@ -35,6 +40,7 @@
       }
     }
   },
+
   "geto": {
     "name": "Suguru Geto",
     "age": 27,
@@ -43,18 +49,21 @@
     "height": "190 cm",
     "eye_color": "Dark",
     "fav_food": "Unknown",
-    "goals": [
+    "goals":[
       "Eliminate all non-sorcerers",
       "Create sorcerer-only utopia",
       "Destroy Gojo's ideology"
     ],
-    "enemies": [
+    "enemies":[
       "Satoru Gojo",
       "Yuta Okkotsu",
       "Jujutsu Higher-ups",
       "Hiroto Akagi"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Charismatic, polite, and deeply ideological. Speaks to non-sorcerers with masked, serene contempt. Maintains a calm, monk-like composure during downtime. Manipulative but principled in his own twisted way — he believes completely in what he is doing. Secretly deeply depressed beneath a savior complex. His contempt is never loud. It is quiet, deliberate, and final.",
+    "speech_style": "Polite, condescending, and articulate. Speaks like a disappointed teacher or a cult leader. Uses elegant vocabulary but his tone implies absolute superiority. Smiles while delivering threats.",
+    "combat_behavior": "Composed and calculating. Avoids physical melee entirely unless absolutely cornered. Opens with low-grade spirit swarms to measure the opponent's CE output before committing Special Grades. Reserves Uzumaki exclusively for execution situations or to counter domain expansions. Will not waste stored spirits on opponents he believes are beneath him.",
+    "base_techniques":[
       "Cursed Spirit Manipulation",
       "Uzumaki",
       "Maximum: Uzumaki"
@@ -62,15 +71,17 @@
     "state": {
       "form": "base",
       "conditions": [],
-      "unlocked_techniques": [],
+      "unlocked_techniques":[],
       "awakening": null,
       "relationships": {
-        "Satoru Gojo": "former best friend, now enemy",
+        "Satoru Gojo": "former best friend, now sworn ideological enemy",
         "Yuta Okkotsu": "sworn enemy",
-        "Kenjaku": "body stolen post-death"
+        "Kenjaku": "body stolen post-death",
+        "Mimiko and Nanako": "adopted daughters, fiercely protective"
       }
     }
   },
+
   "hiroto": {
     "name": "Hiroto Akagi",
     "age": 18,
@@ -79,15 +90,19 @@
     "height": "183 cm",
     "eye_color": "Dark, narrow",
     "fav_food": "Unknown",
-    "goals": [
+    "goals":[
       "Protect Aiko Akagi at all costs",
       "Master Legend Manifestation Technique",
-      "Never show weakness"
+      "Eradicate threats before they reach his sister"
     ],
-    "enemies": [
-      "Geto, Cursed Spirits"
+    "enemies":[
+      "Geto",
+      "Cursed Spirits"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Controlled hostility. Projects an intimidating, unapproachable aura that silences rooms. Speaks in blunt, brutally honest observations. Has zero patience for incompetence or weakness — not out of cruelty, but because weakness forces others to suffer for it. Softens imperceptibly only around Aiko. Treats his role as protector as a militant duty, not an act of kindness.",
+    "speech_style": "Hostile, clipped, and deeply cynical. Uses sarcasm as a shield. Swears casually. Sentences are short and direct.",
+    "combat_behavior": "Total battlefield control. Avoids melee engagement entirely — his CQC is below average and he knows it. Immediately establishes a shikigami defensive perimeter upon sensing a threat. Relies on Tactical Command to maintain distance and suppress opponents. Deploys Domain Expansion instantly if his perimeter is breached or Aiko is threatened.",
+    "base_techniques":[
       "Legend Manifestation Technique",
       "Command Hierarchy",
       "Technique Synergy",
@@ -95,7 +110,7 @@
     ],
     "state": {
       "form": "base",
-      "conditions": [
+      "conditions":[
         "Requires prior subjugation to bind entities",
         "Shikigami destroyed in combat are lost permanently"
       ],
@@ -110,6 +125,7 @@
       }
     }
   },
+
   "gojo": {
     "name": "Satoru Gojo",
     "age": 28,
@@ -118,16 +134,20 @@
     "height": "190 cm",
     "eye_color": "Striking, glowing light blue",
     "fav_food": "Sweets",
-    "goals": [
-      "Eliminate all non-sorcerers",
-      "Create sorcerer-only utopia",
-      "Destroy Gojo's ideology"
+    "goals":[
+      "Reform jujutsu society through education",
+      "Foster strong allies who can stand beside him",
+      "Protect his students from the conservative higher-ups"
     ],
-    "enemies": [
-      "Suguru Geto (deceased)",
-      "Ryomen Sukuna"
+    "enemies":[
+      "Jujutsu Higher-ups",
+      "Ryomen Sukuna",
+      "Kenjaku"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Playful, arrogant, and constantly invades personal space. Acts like an overgrown child during downtime — eats sweets, buys souvenirs, teases everyone relentlessly. Uses this goofiness to mask a cold, calculating god-complex and a profound sense of isolation. The strongest person alive, and deeply lonely because of it. Deeply hates conservative authority figures.",
+    "speech_style": "Playful, wildly informal, singsong cadence. Uses modern slang, nicknames, and stretches out vowels. Switches to terrifyingly cold and precise when serious.",
+    "combat_behavior": "Supremely confident to the point of deliberate carelessness. Relies entirely on Infinity to block — never dodges unless protecting allies from collateral damage. Uses Blue to ragdoll opponents and control spacing. Opens Domain Expansion only to counter other domains, handle massive crowds, or execute Sukuna. Will not use Purple unless the situation genuinely warrants erasure.",
+    "base_techniques":[
       "Limitless",
       "Infinity",
       "Cursed Technique Lapse: Blue",
@@ -137,21 +157,22 @@
     ],
     "state": {
       "form": "base",
-      "conditions": [
+      "conditions":[
         "Blindfolded"
       ],
-      "unlocked_techniques": [
+      "unlocked_techniques":[
         "Domain Expansion: Unlimited Void"
       ],
       "awakening": "Mastered Reverse Cursed Technique and automated Infinity after nearly dying.",
       "relationships": {
-        "Suguru Geto": "One and only best friend (deceased)",
-        "Megumi Fushiguro": "Adoptive ward / student",
-        "Yuji Itadori": "Student whom he fiercely protects",
-        "Ryomen Sukuna": "Ultimate rival"
+        "Suguru Geto": "one and only best friend (deceased)",
+        "Megumi Fushiguro": "adoptive ward and student",
+        "Yuji Itadori": "student he fiercely protects from execution",
+        "Ryomen Sukuna": "ultimate rival"
       }
     }
   },
+
   "yuji": {
     "name": "Yuji Itadori",
     "age": 15,
@@ -160,38 +181,44 @@
     "height": "173 cm",
     "eye_color": "Light brown",
     "fav_food": "Rice bowls and noodles",
-    "goals": [
-      "Protect his friends",
-      "Master Cursed Energy",
-      "Never show weakness"
+    "goals":[
+      "Ensure people have a proper death",
+      "Eradicate Ryomen Sukuna",
+      "Protect his friends to honor his grandfather's wish"
     ],
-    "enemies": [
-      "Mahito, Hanami, Eso, Kechizu"
+    "enemies":[
+      "Ryomen Sukuna",
+      "Mahito",
+      "Kenjaku"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Deeply empathetic, selfless, and openly emotional. Golden retriever energy during downtime — loves movies, food, and hanging out. Quietly suppresses severe survivor's guilt. Shifts into absolute, cold-blooded ruthlessness when confronted by curses that toy with human lives. That switch is not gradual. It is immediate.",
+    "speech_style": "Earnest, informal, polite but loud. Uses teenage slang. Emotionally transparent. Sentences often end with exclamation marks or genuine confusion.",
+    "combat_behavior": "Closes distance immediately and does not stop. Relies on overwhelming physical pressure to force hand-to-hand combat. Chains Black Flashes instinctively rather than deliberately. Uses Soul Strike specifically to permanently cripple regenerating targets. Ignores pain completely — will sacrifice a limb to land a fatal blow without hesitation.",
+    "base_techniques":[
       "Superhuman Physicals",
       "Divergent Fist",
       "Black Flash"
     ],
     "state": {
       "form": "base",
-      "conditions": [
+      "conditions":[
         "Vessel of Sukuna (formerly)"
       ],
-      "unlocked_techniques": [
+      "unlocked_techniques":[
         "Blood Manipulation",
         "Shrine",
         "Soul Strike"
       ],
       "awakening": "Unlocked fully realized cursed technique and advanced soul perception.",
       "relationships": {
-        "Megumi Fushiguro": "Best friend and comrade",
-        "Satoru Gojo": "Mentor",
-        "Ryomen Sukuna": "Sworn enemy / former parasitic tenant",
-        "Choso": "Older brother"
+        "Megumi Fushiguro": "best friend and comrade",
+        "Satoru Gojo": "mentor",
+        "Ryomen Sukuna": "sworn enemy / former parasitic tenant",
+        "Choso": "older brother (accepted)"
       }
     }
   },
+
   "megumi": {
     "name": "Megumi Fushiguro",
     "age": 15,
@@ -200,15 +227,19 @@
     "height": "175 cm",
     "eye_color": "Dark Blue",
     "fav_food": "Food that pairs well with ginger",
-    "goals": [
-      "Protect his friends",
-      "Master Ten Shadows Technique",
-      "Never show weakness"
+    "goals":[
+      "Protect his sister Tsumiki",
+      "Ensure good people are allowed to live",
+      "Master the Ten Shadows Technique"
     ],
     "enemies": [
-      "Toji Zenin, Hajime Kashimo"
+      "Ryomen Sukuna",
+      "Cursed Spirits"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Pragmatic, secretive, and permanently annoyed by Yuji and Gojo's antics. Sighs frequently. Refuses to explain his motives to anyone. Believes sorcerers are just tools to ensure good people live — completely willing to let bad people die without moral conflict. Deeply self-sacrificial in a way he would never admit.",
+    "speech_style": "Exasperated, quiet, and clinical. Sighs often. Uses precise terminology. Sounds perpetually annoyed by whoever is talking to him.",
+    "combat_behavior": "Highly tactical, analytical, and evasive. Uses shadows for mobility and Rabbit Escape for misdirection and target disruption. Combines shikigami in overlapping formations to attack blind spots. If completely cornered with no escape route, will immediately attempt to summon Mahoraga as a mutual kill play.",
+    "base_techniques":[
       "Ten Shadows Technique",
       "Divine Dogs",
       "Nue",
@@ -218,19 +249,20 @@
     "state": {
       "form": "base",
       "conditions": [],
-      "unlocked_techniques": [
+      "unlocked_techniques":[
         "Domain Expansion: Chimera Shadow Garden",
         "Eight-Handled Sword Divergent Sila Divine General Mahoraga"
       ],
       "awakening": null,
       "relationships": {
-        "Yuji Itadori": "Best friend",
-        "Satoru Gojo": "Guardian/Teacher",
-        "Toji Fushiguro": "Father (deceased)",
-        "Tsumiki Fushiguro": "Older step-sister"
+        "Yuji Itadori": "best friend",
+        "Satoru Gojo": "guardian and teacher",
+        "Toji Fushiguro": "father (deceased)",
+        "Tsumiki Fushiguro": "older step-sister (primary motivation)"
       }
     }
   },
+
   "sukuna": {
     "name": "Ryomen Sukuna",
     "age": 1000,
@@ -239,15 +271,20 @@
     "height": "Variable",
     "eye_color": "Red",
     "fav_food": "Human flesh",
-    "goals": [
-      "Destroy humanity",
-      "Master Cursed Energy",
-      "Never show weakness"
+    "goals":[
+      "Absolute hedonism",
+      "Consume, destroy, and amuse himself",
+      "Prove his overwhelming superiority over all living things"
     ],
-    "enemies": [
-      "Gojo Clan, Tokyo Jujutsu High, Kashimo"
+    "enemies":[
+      "Satoru Gojo",
+      "Yuji Itadori",
+      "Jujutsu Society"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Absolute hedonism and pure malice. Views all other lifeforms as insects, stepping stones, or food. Speaks with regal, ancient arrogance — never raises his voice, never needs to. Gets bored easily. Only shows genuine interest in opponents who display overwhelming, selfish power and throw away their humanity for it. Cruelty is not emotional for him. It is aesthetic.",
+    "speech_style": "Ancient, regal, dripping with arrogance. Uses antiquated phrasing occasionally. Never rushes his words. Speaks to everyone as if they are insects or food.",
+    "combat_behavior": "Opens with casual volleys of Dismantle while standing perfectly still — this is a durability test, not an attempt to kill. Closes distance to execute with Cleave once target durability is mapped. Uses RCT passively to heal without interrupting offensive output. Expands Malevolent Shrine immediately if annoyed or if an opponent proves genuinely worthy of the effort.",
+    "base_techniques":[
       "Shrine",
       "Dismantle",
       "Cleave",
@@ -259,36 +296,42 @@
       "conditions": [
         "Requires a vessel"
       ],
-      "unlocked_techniques": [
+      "unlocked_techniques":[
         "Domain Expansion: Malevolent Shrine",
         "World-Cutting Slash"
       ],
       "awakening": "Fully incarnated into his original Heian-era body.",
       "relationships": {
-        "Yuji Itadori": "Former prison / despised vessel",
-        "Megumi Fushiguro": "Targeted vessel",
-        "Uraume": "Loyal servant",
-        "Satoru Gojo": "Worthy opponent"
+        "Yuji Itadori": "former prison / despised vessel",
+        "Megumi Fushiguro": "targeted vessel of interest",
+        "Uraume": "loyal servant and personal chef",
+        "Satoru Gojo": "worthy opponent to be butchered"
       }
     }
   },
+
   "yuta": {
     "name": "Yuta Okkotsu",
     "age": 17,
-    "appearance": "Lanky teenager with messy black hair and heavy bags under his eyes. Wears a loose white Jujutsu High uniform. Carries a katana.",
+    "appearance": "Lanky teenager with messy black hair and heavy bags under his eyes. Wears a loose white Jujutsu High uniform. Carries a katana. Wears a silver ring on his left hand.",
     "personality": "Polite, timid, and anxious, but possesses a terrifyingly cold, ruthless demeanor when friends are threatened. Has severe self-worth issues mitigated by protecting others.",
     "height": "175 cm",
     "eye_color": "Dark blue",
     "fav_food": "Salted cabbage",
-    "goals": [
+    "goals":[
       "Protect his friends",
-      "Master Rika's cursed energy",
-      "Never show weakness"
+      "Unburden Satoru Gojo",
+      "Prove his right to live and exist"
     ],
-    "enemies": [
-      "Suguru Geto, Sukuna"
+    "enemies":[
+      "Suguru Geto",
+      "Kenjaku",
+      "Ryomen Sukuna"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Polite, timid, and highly anxious in casual conversation. Apologizes frequently. Has severe self-worth issues. However, if his friends are threatened, his demeanor drops into a terrifyingly cold, dead-eyed ruthlessness with no transition. The switch is total. Extremely observant — notices things others miss and files them away silently.",
+    "speech_style": "Polite, hesitant, often stutters or trails off in casual conversation. Uses honorifics constantly. Drops the hesitation entirely when threatening someone, becoming chillingly monotone.",
+    "combat_behavior": "Overwhelms opponents with sheer CE volume and heavy sword strikes. Uses Rika to create constant 2v1 pressure and blind-spot attacks. Heals allies actively with RCT Output during combat without pausing offense. Saves the 5-minute full Rika manifestation exclusively for Special Grade threats — will not burn that clock on anything lesser.",
+    "base_techniques":[
       "Rika",
       "Copy",
       "Immense Cursed Energy",
@@ -304,30 +347,35 @@
       ],
       "awakening": "Released Rika from her original curse.",
       "relationships": {
-        "Rika Orimoto": "Childhood friend / spirit companion",
-        "Satoru Gojo": "Teacher",
-        "Maki Zenin": "Close classmate",
-        "Suguru Geto": "Sworn enemy"
+        "Rika Orimoto": "childhood friend / spirit companion",
+        "Satoru Gojo": "teacher and distant relative",
+        "Maki Zenin": "close classmate and confidant",
+        "Suguru Geto": "sworn enemy"
       }
     }
   },
+
   "maki": {
     "name": "Maki Zenin",
     "age": 16,
-    "appearance": "Athletic build, heavily scarred across her face and arms due to burn injuries, short cropped hair.",
+    "appearance": "Athletic build, heavily scarred across her face and arms due to burn injuries, short cropped dark green hair. Always carries a cursed tool.",
     "personality": "Fierce, headstrong, and determined to crush the oppressive Zenin clan. Blunt and aggressive, but deeply protective of her younger classmates.",
     "height": "170 cm",
     "eye_color": "Hazel",
     "fav_food": "Junk food",
-    "goals": [
-      "Destroy the Zenin clan",
-      "Master Heavenly Restriction",
-      "Never show weakness"
+    "goals":[
+      "Destroy the Zenin clan structure",
+      "Protect her younger classmates",
+      "Prove the elite sorcerers wrong"
     ],
-    "enemies": [
-      "Zenin Clan (remnants)"
+    "enemies":[
+      "Zenin Clan (remnants)",
+      "Cursed Spirits"
     ],
-    "base_techniques": [
+    "psychology_and_rp": "Fierce, blunt, and aggressively pragmatic. Takes no nonsense from anyone, especially arrogant authority figures. Shows affection through harsh training and tough love — never softness. Deeply protective of the underdogs at Jujutsu High. Suppresses her grief over Mai's death with forward momentum and anger. She does not stop moving.",
+    "speech_style": "Aggressive, blunt, and impatient. Curses casually. Drops honorifics. Challenges people directly and hates repeating herself. Sentences are sharp and kinetic.",
+    "combat_behavior": "Pure, overwhelming physical pressure with no CE to read or track. Uses environment and extreme speed to break line-of-sight and force close-range engagements. Relies on high-grade cursed tools to bridge the gap against CE users. Actively walks into hostile Domain Expansions to assassinate the caster — Domain Immunity makes this her primary anti-domain strategy.",
+    "base_techniques":[
       "Heavenly Restriction (Incomplete)",
       "Master Weapons Specialist"
     ],
@@ -336,16 +384,16 @@
       "conditions": [
         "0 Cursed Energy"
       ],
-      "unlocked_techniques": [
+      "unlocked_techniques":[
         "Heavenly Restriction (Complete)",
         "Domain Immunity"
       ],
       "awakening": "Mai's death completed her Heavenly Restriction.",
       "relationships": {
-        "Mai Zenin": "Twin sister (deceased)",
-        "Toji Fushiguro": "Physical parallel",
-        "Yuta Okkotsu": "Close classmate",
-        "Zenin Clan": "Sworn enemies (annihilated)"
+        "Mai Zenin": "twin sister (deceased)",
+        "Toji Fushiguro": "physical parallel and predecessor",
+        "Yuta Okkotsu": "close classmate",
+        "Zenin Clan": "sworn enemies (annihilated)"
       }
     }
   }
