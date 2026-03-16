@@ -23,16 +23,16 @@ def create_context(characters=[], response_length="medium", user_character="", w
     return {
         "system": system,
         "mode": mode,
-        "history": [],
-        "max_his_size": 15,
-        "important": [],
+        "history":[],
+        "max_his_size": 5,  # OPTIMIZED: Reduced from 15 to 5 to save massive tokens
+        "important":[],
         "characters": characters,
         "response_length": response_length,
         "world_rules": world_rules,
         "world_state": "",
         "scene": scene,
         "user_character": user_character,
-        "seen_techniques": []
+        "seen_techniques":[]
     }
 
 def add_to_history(context, message):
@@ -67,39 +67,32 @@ def _char_to_narrator_block(character):
 
 
 def _detect_tier(user_input, context):
-    """Detect which narration tier this turn requires."""
     lower = user_input.lower()
-
-    # Tier 1: domain expansion or technique appearing for the first time this session
     tier1_keywords = ["domain expansion", "domain expand"]
     if any(k in lower for k in tier1_keywords):
         return "tier1"
 
-    # Check if any named technique in the input is new this session
     from techniques import load_db
     mode = context.get("mode", "local")
     db = load_db(mode)
-    seen = context.get("seen_techniques", [])
+    seen = context.get("seen_techniques",[])
     for tech_name in db.keys():
         if tech_name.lower() in lower and tech_name not in seen:
             return "tier1"
 
-    # Tier 2: combat action
-    tier2_keywords = ["attack", "hit", "strike", "slash", "blast", "fire", "throw",
+    tier2_keywords =["attack", "hit", "strike", "slash", "blast", "fire", "throw",
                       "punch", "kick", "deploy", "activate", "counter", "block", "dodge"]
     if any(k in lower for k in tier2_keywords):
         return "tier2"
 
-    # Default: tier 3
     return "tier3"
 
 
 def _update_seen_techniques(user_input, context):
-    """Mark techniques as seen after this turn."""
     from techniques import load_db
     mode = context.get("mode", "local")
     db = load_db(mode)
-    seen = context.get("seen_techniques", [])
+    seen = context.get("seen_techniques",[])
     lower = user_input.lower()
     for tech_name in db.keys():
         if tech_name.lower() in lower and tech_name not in seen:
@@ -116,34 +109,24 @@ def build_decision_prompt(context, user_input):
 
     npc_blocks = []
     for npc in npcs:
-        goals = ", ".join(npc.get("goals", [])) or "none"
-        enemies = ", ".join(npc.get("enemies", [])) or "none"
+        goals = ", ".join(npc.get("goals",[])) or "none"
+        enemies = ", ".join(npc.get("enemies",[])) or "none"
+        base_techniques = ", ".join(npc.get("base_techniques",[])) or "none"
+        unlocked_techniques = ", ".join(npc.get("state", {}).get("unlocked_techniques",[])) or "none"
 
-        # Relationships are at the top level in the new characters.json
-        relationships = ", ".join(
-            [f"{k}: {v}" for k, v in npc.get("relationships", {}).items()]
-        ) or "none"
-
-        base_techniques = ", ".join(npc.get("base_techniques", [])) or "none"
-        unlocked_techniques = ", ".join(
-            npc.get("state", {}).get("unlocked_techniques", [])
-        ) or "none"
-        conditions = ", ".join(npc.get("state", {}).get("conditions", [])) or "none"
-
+        # OPTIMIZED: We only send psychological and combat data. No appearance or full techniques.
         npc_blocks.append(f"""## {npc["name"]}
 **Goals:** {goals}
 **Enemies:** {enemies}
-**Relationships:** {relationships}
 **Psychology:** {npc.get("psychology_and_rp", npc.get("personality", "none"))}
-**Speech Style:** {npc.get("speech_style", "none")}
 **Combat Behavior:** {npc.get("combat_behavior", "none")}
-**Available Techniques:** {base_techniques}, {unlocked_techniques}
-**Conditions:** {conditions}""")
+**Available Techniques:** {base_techniques}, {unlocked_techniques}""")
 
     npc_text = "\n\n".join(npc_blocks)
     npc_names = [c["name"] for c in npcs]
 
-    json_template = "{{\n" + ",\n".join([
+    # Added the environment_event to the JSON template
+    json_template = "{{\n  \"environment_event\": \"...\",\n" + ",\n".join([
         f'  "{name}": {{\n    "action": "...",\n    "dialogue": "...",\n    "target": "..."\n  }}'
         for name in npc_names
     ]) + "\n}}"
@@ -151,10 +134,6 @@ def build_decision_prompt(context, user_input):
     return f"""<scene>
 {context["scene"]}
 </scene>
-
-<world_state>
-{context["world_state"] or "Nominal"}
-</world_state>
 
 <user_action>
 {context["user_character"]}: "{user_input}"
@@ -165,19 +144,16 @@ def build_decision_prompt(context, user_input):
 </npcs>
 
 Decide what each NPC does this turn in direct response to the user's action.
-Output ONLY raw JSON. No preamble. No explanation. No markdown fences.
+Output ONLY raw JSON. No preamble. No explanation.
 
 {json_template}
 
 RULES:
-- You are deciding actions for NPCs ONLY. {context["user_character"]} is the player — never assign actions, dialogue, or thoughts to them under any circumstances.
-- Read the user's action carefully. If it is dialogue, movement, or observation — the NPC responds in kind. Do not escalate to combat unless the user's action is explicitly hostile or names a technique.
-- action: A concrete technique or movement from their Available Techniques list. If the user is not attacking, this should be a physical reaction or dialogue beat — not a technique activation.
-- dialogue: One line maximum. Must match their Psychology exactly. Empty string if silent.
-- target: Who they are acting against. If non-combat, use "none".
-- If the NPC has no valid counter, they physically react — they do not stand still.
-- Base every decision strictly on Goals, Enemies, Combat Behavior, and Psychology.
-- Never invent techniques not listed under Available Techniques.
+- You are deciding actions for NPCs ONLY. 
+- ESCALATION MANDATE: If there is a threat, a mystery, or a lull, NPCs MUST take a proactive physical action (draw weapon, investigate).
+- ENVIRONMENT CONTROL: You control the world and unnamed entities. Use "environment_event" to describe their reactions.
+- action: A concrete technique or movement.
+- dialogue: One line maximum. Match Psychology. Empty string if silent.
 """
 
 
@@ -189,20 +165,25 @@ def build_prompt(context, user_input, npc_decisions=""):
 
     technique_names = set()
     for c in active:
-        technique_names.update(c.get("base_techniques", []))
-        technique_names.update(c.get("state", {}).get("unlocked_techniques", []))
+        technique_names.update(c.get("base_techniques",[]))
+        technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
     mechanics_block = get_technique_details(list(technique_names), mode=mode)
 
-    world_briefing = [JUJUTSU_WORLD["physics"]]
-    combat_keywords = ["attack", "domain", "expand", "hit", "kill", "fight", "technique"]
-    if any(k in user_input.lower() or k in context['scene'].lower() for k in combat_keywords):
+    # OPTIMIZED: World Physics RAG
+    world_briefing =[JUJUTSU_WORLD["physics"], JUJUTSU_WORLD["soul"]]
+    search_text = (user_input + context['scene'] + npc_decisions).lower()
+    
+    if any(k in search_text for k in ["domain", "barrier", "simple domain", "hollow wicker", "clash", "sure-hit"]):
         world_briefing.append(JUJUTSU_WORLD["barriers"])
+    if any(k in search_text for k in["rct", "reverse", "burnout", "heal", "brain"]):
         world_briefing.append(JUJUTSU_WORLD["advanced_operations"])
-    else:
+    if any(k in search_text for k in ["vow", "contract", "sacrifice", "reveal"]):
         world_briefing.append(JUJUTSU_WORLD["vows"])
-
-    if any(loc in context['scene'].lower() for loc in ["shibuya", "high", "tombs", "headquarters"]):
-        world_briefing.append(JUJUTSU_WORLD["locations"])
+    if any(k in search_text for k in ["black flash", "zone", "heavenly restriction"]):
+        world_briefing.append(JUJUTSU_WORLD["phenomena"])
+    if any(loc in search_text for loc in ["shibuya", "high", "tombs", "headquarters"]):
+        world_briefing.append(JUJUTSU_WORLD.get("locations", ""))
+        
     world_text = "\n".join(world_briefing)
 
     npc_names = [c["name"] for c in active if c["name"].lower() != context["user_character"].lower()]
@@ -230,7 +211,7 @@ def build_prompt(context, user_input, npc_decisions=""):
 </engine_data>
 
 <history>
-{chr(10).join(context['history'][-5:]) or 'No previous actions.'}
+{chr(10).join(context['history'][-context['max_his_size']:]) or 'No previous actions.'}
 </history>
 
 <user_action>
@@ -247,7 +228,6 @@ CRITICAL: The <narration> block must NEVER describe {context['user_character']}'
 Task: Start your response immediately with <analysis>. Do not write any text before the <analysis> tag.
 """
 
-
 def get_active_character(context, name):
     for character in context["characters"]:
         if character["name"].lower() == name.lower():
@@ -257,11 +237,3 @@ def get_active_character(context, name):
         if character["name"].lower() in name.lower():
             return character
     return None
-
-
-def get_technique_summary(context):
-    summary = []
-    for character in context["characters"]:
-        techniques = character["base_techniques"] + character["state"]["unlocked_techniques"]
-        summary.append(f"{character['name']} can only use: {', '.join(techniques)}")
-    return "\n".join(summary)

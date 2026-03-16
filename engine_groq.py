@@ -5,10 +5,10 @@ import os
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-TEMPERATURE = 0.5
+TEMPERATURE = 0.4
 
 def ask(prompt, system="", few_shot=None):
-    messages = [{"role": "system", "content": system}]
+    messages =[{"role": "system", "content": system}]
 
     if few_shot:
         messages.append({"role": "user", "content": few_shot["input"]})
@@ -23,13 +23,19 @@ def ask(prompt, system="", few_shot=None):
             "Content-Type": "application/json"
         },
         json={
-            "model": "llama-3.3-70b-versatile",
+            "model": "llama-3.3-70b-versatile",  
             "messages": messages,
             "temperature": TEMPERATURE,
             "max_tokens": 1024,
         }
     )
-    return response.json()["choices"][0]["message"]["content"]
+    response_json = response.json()
+    
+    if "choices" not in response_json:
+        print(f"ERROR: Rate Limit or API Error. Full response: {response_json}")
+        return f"API Error: {response_json}"
+    
+    return response_json["choices"][0]["message"]["content"]
 
 def validate(response, world_rules, scene, technique_summary):
     prompt = f"""You are a strict rule validator for a roleplay system.
