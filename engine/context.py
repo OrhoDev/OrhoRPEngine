@@ -1,38 +1,30 @@
-from characters import char_to_prompt
 import json
-from techniques import get_technique_details
-from world import JUJUTSU_WORLD
 from pathlib import Path
 
-BASE = Path(__file__).parent
+
+BASE = Path(__file__).parent.parent
 
 def load_system_prompts():
-    with open(BASE / "system_prompts.json", "r") as f:
-        return json.load(f)
-
-def load_examples():
-    with open(BASE / "examples.json", "r") as f:
+    with open(BASE / "system_prompts.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
 SYSTEM_PROMPTS = load_system_prompts()
-EXAMPLES = load_examples()
 
-
-def create_context(characters=[], response_length="medium", user_character="", world_rules="", scene="", mode="local"):
-    system = SYSTEM_PROMPTS[mode]
+def create_context(state_manager, characters=[], response_length="medium", user_character="", scene="", mode="api"):
+    system = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS.get("api"))
     return {
+        "state_manager": state_manager,
         "system": system,
         "mode": mode,
-        "history":[],
-        "max_his_size": 5,  # OPTIMIZED: Reduced from 15 to 5 to save massive tokens
+        "history": [],
+        "max_his_size": 5,
         "important":[],
         "characters": characters,
         "response_length": response_length,
-        "world_rules": world_rules,
         "world_state": "",
         "scene": scene,
         "user_character": user_character,
-        "seen_techniques":[]
+        "seen_techniques": []
     }
 
 def add_to_history(context, message):
@@ -47,74 +39,63 @@ def unpin(context, message):
     context["important"].remove(message)
 
 def save_session(context, filename="session.json"):
-    with open(filename, "w") as f:
-        json.dump(context, f)
-
-def load_session(filename="session.json"):
-    with open(filename, "r") as f:
-        return json.load(f)
-
+    with open(filename, "w", encoding="utf-8") as f:
+    
+        save_data = {k: v for k, v in context.items() if k != "state_manager"}
+        json.dump(save_data, f)
 
 def _char_to_narrator_block(character):
-    condition_text = ", ".join(character['state']['conditions']) or 'none'
-    base_techniques = ", ".join(character['base_techniques']) or 'none'
-    unlocked_techniques = ", ".join(character['state']['unlocked_techniques']) or 'none'
+    condition_text = ", ".join(character.get('state', {}).get('conditions',[])) or 'none'
+    base_techniques = ", ".join(character.get('base_techniques',[])) or 'none'
+    unlocked_techniques = ", ".join(character.get('state', {}).get('unlocked_techniques',[])) or 'none'
     return f"""## {character['name']}
 **Base Techniques:** {base_techniques}
 **Unlocked Techniques:** {unlocked_techniques}
 **Conditions:** {condition_text}
-**Form:** {character['state'].get('form', 'base')}"""
-
+**Form:** {character.get('state', {}).get('form', 'base')}"""
 
 def _detect_tier(user_input, context):
     lower = user_input.lower()
-    tier1_keywords = ["domain expansion", "domain expand"]
+    state = context["state_manager"]
+    
+    tier1_keywords = ["domain expansion", "domain expand", "bankai", "ultimate"] 
     if any(k in lower for k in tier1_keywords):
         return "tier1"
 
-    from techniques import load_db
-    mode = context.get("mode", "local")
-    db = load_db(mode)
     seen = context.get("seen_techniques",[])
-    for tech_name in db.keys():
+    for tech_name in state.techniques.keys():
         if tech_name.lower() in lower and tech_name not in seen:
             return "tier1"
 
-    tier2_keywords =["attack", "hit", "strike", "slash", "blast", "fire", "throw",
-                      "punch", "kick", "deploy", "activate", "counter", "block", "dodge"]
+    tier2_keywords =["attack", "hit", "strike", "slash", "blast", "fire", "throw", "punch", "kick", "deploy", "activate", "counter", "block", "dodge"]
     if any(k in lower for k in tier2_keywords):
         return "tier2"
 
     return "tier3"
 
-
 def _update_seen_techniques(user_input, context):
-    from techniques import load_db
-    mode = context.get("mode", "local")
-    db = load_db(mode)
+    state = context["state_manager"]
     seen = context.get("seen_techniques",[])
     lower = user_input.lower()
-    for tech_name in db.keys():
+    for tech_name in state.techniques.keys():
         if tech_name.lower() in lower and tech_name not in seen:
             seen.append(tech_name)
     context["seen_techniques"] = seen
 
-
 def build_decision_prompt(context, user_input):
     user = context["user_character"].lower()
-    npcs = [c for c in context["characters"] if c["name"].lower() != user]
+    npcs =[c for c in context["characters"] if c["name"].lower() != user]
 
     if not npcs:
         return ""
 
-    npc_blocks = []
+    npc_blocks =[]
     for npc in npcs:
         goals = ", ".join(npc.get("goals",[])) or "none"
         enemies = ", ".join(npc.get("enemies",[])) or "none"
         base_techniques = ", ".join(npc.get("base_techniques",[])) or "none"
         unlocked_techniques = ", ".join(npc.get("state", {}).get("unlocked_techniques",[])) or "none"
 
-        # OPTIMIZED: We only send psychological and combat data. No appearance or full techniques.
         npc_blocks.append(f"""## {npc["name"]}
 **Goals:** {goals}
 **Enemies:** {enemies}
@@ -125,29 +106,16 @@ def build_decision_prompt(context, user_input):
     npc_text = "\n\n".join(npc_blocks)
     npc_names = [c["name"] for c in npcs]
 
-    # Added the environment_event to the JSON template
     json_template = "{{\n  \"environment_event\": \"...\",\n" + ",\n".join([
         f'  "{name}": {{\n    "action": "...",\n    "dialogue": "...",\n    "target": "..."\n  }}'
         for name in npc_names
     ]) + "\n}}"
 
-    return f"""<scene>
-{context["scene"]}
-</scene>
-
-<user_action>
-{context["user_character"]}: "{user_input}"
-</user_action>
-
-<npcs>
-{npc_text}
-</npcs>
-
-Decide what each NPC does this turn in direct response to the user's action.
-Output ONLY raw JSON. No preamble. No explanation.
-
-{json_template}
-
+    return f"""<scene>\n{context["scene"]}\n</scene>\n
+<user_action>\n{context["user_character"]}: "{user_input}"\n</user_action>\n
+<npcs>\n{npc_text}\n</npcs>\n
+Decide what each NPC does this turn in direct response to the user's action. Output ONLY raw JSON. No preamble. No explanation.\n
+{json_template}\n
 RULES:
 - You are deciding actions for NPCs ONLY. 
 - ESCALATION MANDATE: If there is a threat, a mystery, or a lull, NPCs MUST take a proactive physical action (draw weapon, investigate).
@@ -156,9 +124,8 @@ RULES:
 - dialogue: One line maximum. Match Psychology. Empty string if silent.
 """
 
-
 def build_prompt(context, user_input, npc_decisions=""):
-    mode = context.get("mode", "local")
+    state = context["state_manager"]
     active = context["characters"]
 
     char_text = "\n\n".join([_char_to_narrator_block(c) for c in active])
@@ -167,31 +134,31 @@ def build_prompt(context, user_input, npc_decisions=""):
     for c in active:
         technique_names.update(c.get("base_techniques",[]))
         technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
-    mechanics_block = get_technique_details(list(technique_names), mode=mode)
+    mechanics_block = state.get_technique_details(list(technique_names))
 
-    # OPTIMIZED: World Physics RAG
-    world_briefing =[JUJUTSU_WORLD["physics"], JUJUTSU_WORLD["soul"]]
-    search_text = (user_input + context['scene'] + npc_decisions).lower()
+
+    world_briefing =[]
+    search_text = (user_input + " " + context['scene'] + " " + npc_decisions).lower()
     
-    if any(k in search_text for k in ["domain", "barrier", "simple domain", "hollow wicker", "clash", "sure-hit"]):
-        world_briefing.append(JUJUTSU_WORLD["barriers"])
-    if any(k in search_text for k in["rct", "reverse", "burnout", "heal", "brain"]):
-        world_briefing.append(JUJUTSU_WORLD["advanced_operations"])
-    if any(k in search_text for k in ["vow", "contract", "sacrifice", "reveal"]):
-        world_briefing.append(JUJUTSU_WORLD["vows"])
-    if any(k in search_text for k in ["black flash", "zone", "heavenly restriction"]):
-        world_briefing.append(JUJUTSU_WORLD["phenomena"])
-    if any(loc in search_text for loc in ["shibuya", "high", "tombs", "headquarters"]):
-        world_briefing.append(JUJUTSU_WORLD.get("locations", ""))
-        
+    if state.world_rules:
+
+        keys = list(state.world_rules.keys())
+        if keys:
+            world_briefing.append(state.world_rules[keys[0]])
+            
+   
+        for key in keys[1:]:
+      
+            keywords = key.split("_")
+            if any(k in search_text for k in keywords):
+                world_briefing.append(state.world_rules[key])
+                
     world_text = "\n".join(world_briefing)
 
     npc_names = [c["name"] for c in active if c["name"].lower() != context["user_character"].lower()]
     npc_string = ", ".join(npc_names) if npc_names else "None"
 
-    resolved_block = f"""<resolved_npc_actions>
-{npc_decisions}
-</resolved_npc_actions>""" if npc_decisions else ""
+    resolved_block = f"""<resolved_npc_actions>\n{npc_decisions}\n</resolved_npc_actions>""" if npc_decisions else ""
 
     return f"""<engine_data>
 # WORLD RULES
@@ -227,13 +194,3 @@ INSTRUCTION: The <resolved_npc_actions> block contains exactly what each NPC dec
 CRITICAL: The <narration> block must NEVER describe {context['user_character']}'s body, movements, eyes, hands, or internal state. Begin narration with environmental or mechanical consequence of the action only.
 Task: Start your response immediately with <analysis>. Do not write any text before the <analysis> tag.
 """
-
-def get_active_character(context, name):
-    for character in context["characters"]:
-        if character["name"].lower() == name.lower():
-            return character
-        if name.lower() in character["name"].lower():
-            return character
-        if character["name"].lower() in name.lower():
-            return character
-    return None
