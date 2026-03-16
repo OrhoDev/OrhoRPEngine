@@ -44,6 +44,10 @@ def save_session(context, filename="session.json"):
         save_data = {k: v for k, v in context.items() if k != "state_manager"}
         json.dump(save_data, f)
 
+def load_session(filename="session.json"):
+    with open(filename, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 def _char_to_narrator_block(character):
     condition_text = ", ".join(character.get('state', {}).get('conditions',[])) or 'none'
     base_techniques = ", ".join(character.get('base_techniques',[])) or 'none'

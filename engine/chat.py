@@ -93,9 +93,36 @@ def chat(context):
         world_update_match = re.search(r"<world_update>(.*?)</world_update>", response, re.DOTALL)
 
         if world_update_match:
-            world_update = world_update_match.group(1).strip()
-            if world_update and world_update.lower() != "none":
-                context["world_state"] = (context["world_state"] + "\n" + world_update).strip()
+            world_update_raw = world_update_match.group(1).strip()
+            
+            if world_update_raw and world_update_raw.lower() != "none":
+                # 1. Update the general environmental world state
+                # We add it to the scene context so the AI remembers things like "The building collapsed"
+                context["world_state"] = (context["world_state"] + "\n" + world_update_raw).strip()
+
+                # 2. THE MEMORY PARSER (State Injection)
+                # We split the text by newlines or periods to catch multiple updates
+                # e.g., "Geto: Bleeding.\nMaki: Tired." -> ["Geto: Bleeding", "Maki: Tired"]
+                updates = re.split(r'[\n.]', world_update_raw)
+                
+                for update in updates:
+                    # We check if there is a colon, which is our signal for "Character: Condition"
+                    if ":" in update:
+                        # Split it into exactly two parts: Left side (Name), Right side (Condition)
+                        parts = update.split(":", 1)
+                        char_name = parts[0].strip()
+                        new_condition = parts[1].strip()
+
+                        if char_name and new_condition:
+                            # Search our active scene for this character
+                            target_char = get_active_character(context, char_name)
+                            
+                            if target_char:
+                                # Check to make sure we don't add the same injury twice
+                                if new_condition not in target_char["state"]["conditions"]:
+                                    # Inject the condition into their permanent state!
+                                    target_char["state"]["conditions"].append(new_condition)
+                                    print(f"  [+] MEMORY INJECTED: {target_char['name']} is now '{new_condition}'")
 
         final_output = narration_match.group(1).strip() if narration_match else "(No narration block returned.)"
         print(f"\n[NARRATION]:\n{final_output}")
