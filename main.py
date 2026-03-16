@@ -1,24 +1,54 @@
-from characters import characters, get_character, char_to_prompt
-from chat import chat
-from context import create_context
-from world import JUJUTSU_WORLD
+import sys
+import os
+from pathlib import Path
 
-mode = input("MODE? (local/api)\n").strip().lower()
 
-if mode == "api":
-    from engine_groq import ask, validate
-else:
-    from engine_local import ask, validate
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "engine"))
 
-char_select = input("WHO IS PRESENT?\n").split(",")
-user_char = input("WHO ARE YOU?\n")
-scene = input("WHAT IS THE SCENE?\n")
+from engine.state_manager import StateManager
+from engine.context import create_context
+from engine.chat import chat
 
-characters = [get_character(name.strip()) for name in char_select]
-user_character = get_character(user_char.strip())
-if user_character and user_character not in characters:
-    characters.append(user_character)
+def boot_sequence():
+    print("RPG ENGINE")
+    world_select = input("LOAD WORLD (default: jjk): \n").strip().lower() or "jjk"
+    
 
-world_rules = JUJUTSU_WORLD
-context = create_context(characters = characters, user_character = user_char, scene = scene, world_rules= JUJUTSU_WORLD, mode=mode)
-chat(context)
+    state = StateManager(world_name=world_select)
+    if not state.world_rules:
+        print(f"World '{world_select}' not found or missing world.json.")
+        return
+
+    mode = input("MODE? (local/api) [default: api]: \n").strip().lower() or "api"
+    
+    char_select = input("WHO IS PRESENT? (comma separated): \n").split(",")
+    user_char = input("WHO ARE YOU?: \n").strip()
+    scene = input("WHAT IS THE SCENE?: \n").strip()
+
+
+    active_characters =[]
+    for name in char_select:
+        char_data = state.get_character(name)
+        if char_data:
+            active_characters.append(char_data)
+        else:
+            print(f"Character '{name.strip()}' not found in {world_select} database.")
+
+    user_character_data = state.get_character(user_char)
+    if user_character_data and user_character_data not in active_characters:
+        active_characters.append(user_character_data)
+
+    
+    context = create_context(
+        state_manager=state,
+        characters=active_characters,
+        user_character=user_char,
+        scene=scene,
+        mode=mode
+    )
+    
+    print("\n")
+    chat(context)
+
+if __name__ == "__main__":
+    boot_sequence()
