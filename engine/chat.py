@@ -1,8 +1,8 @@
 import re
 from context import (add_to_pinned, add_to_history,
-                     build_prompt, build_decision_prompt,
+                     build_prompt, build_decision_prompt, get_active_character,
                      save_session, load_session, unpin, SYSTEM_PROMPTS,
-                     _detect_tier, _update_seen_techniques, get_active_character)
+                     _detect_tier, _update_seen_techniques)
 
 import sys
 import os
@@ -59,7 +59,7 @@ def chat(context):
 
         is_combat, tech_name = is_combat_move(user_input, context)
         if is_combat:
-            active_char = state.get_character(context['user_character'])
+            active_char = get_active_character(context, context['user_character'])
             if active_char is None:
                 print(f"\n[Referee]: Character '{context['user_character']}' not found in scene.")
                 continue
@@ -77,7 +77,7 @@ def chat(context):
                 f"\n[INSTRUCTION]: The user's action is mechanically impossible. Narrate the attempt and failure only. Technical reason: {verdict}"
             response = ask(failure_prompt, context["system"])
         else:
-        
+
             npc_decisions = ask(
                 build_decision_prompt(context, user_input),
                 SYSTEM_PROMPTS["decision"]
@@ -92,44 +92,53 @@ def chat(context):
         narration_match = re.search(r"<narration>(.*?)</narration>", response, re.DOTALL)
         world_update_match = re.search(r"<world_update>(.*?)</world_update>", response, re.DOTALL)
 
+
         if world_update_match:
             world_update_raw = world_update_match.group(1).strip()
             
             if world_update_raw and world_update_raw.lower() != "none":
-                # 1. Update the general environmental world state
-                # We add it to the scene context so the AI remembers things like "The building collapsed"
+  
                 context["world_state"] = (context["world_state"] + "\n" + world_update_raw).strip()
 
-                # 2. THE MEMORY PARSER (State Injection)
-                # We split the text by newlines or periods to catch multiple updates
-                # e.g., "Geto: Bleeding.\nMaki: Tired." -> ["Geto: Bleeding", "Maki: Tired"]
+      
                 updates = re.split(r'[\n.]', world_update_raw)
-                
                 for update in updates:
-                    # We check if there is a colon, which is our signal for "Character: Condition"
                     if ":" in update:
-                        # Split it into exactly two parts: Left side (Name), Right side (Condition)
                         parts = update.split(":", 1)
                         char_name = parts[0].strip()
                         new_condition = parts[1].strip()
 
                         if char_name and new_condition:
-                            # Search our active scene for this character
                             target_char = get_active_character(context, char_name)
-                            
                             if target_char:
-                                # Check to make sure we don't add the same injury twice
                                 if new_condition not in target_char["state"]["conditions"]:
-                                    # Inject the condition into their permanent state!
                                     target_char["state"]["conditions"].append(new_condition)
-                                    print(f"  [+] MEMORY INJECTED: {target_char['name']} is now '{new_condition}'")
+                                    print(f"  [+] MEMORY INJECTED: {target_char['name']} -> '{new_condition}'")
+
+
+        sys_command_matches = re.findall(r"\[SYS_COMMAND:\s*(.*?)\]", response)
+        if sys_command_matches:
+            print("\n[AI SYSTEM EVENT DETECTED]")
+            for cmd in sys_command_matches:
+                print(f"  > Executing Agent Command: {cmd}")
+                handle_command(cmd, context)
 
         final_output = narration_match.group(1).strip() if narration_match else "(No narration block returned.)"
-        print(f"\n[NARRATION]:\n{final_output}")
+
+        clean_lines =[]
+        for line in final_output.split('\n'):
+            line = line.strip()
+            if line:
+                clean_line = re.sub(r"^BEAT\s*\d+:\s*", "", line)
+                clean_lines.append(clean_line)
+        
+        formatted_output = "\n\n".join(clean_lines)
+
+        print(f"\n[NARRATION]:\n{formatted_output}")
 
         _update_seen_techniques(user_input, context)
         add_to_history(context, user_input)
-        add_to_history(context, final_output)
+        add_to_history(context, formatted_output)
 
 def handle_command(user_input, context):
     state = context["state_manager"]
@@ -145,7 +154,6 @@ def handle_command(user_input, context):
         if char is None:
             print(f"Unknown character: {rest} in world '{state.world_name}'")
             return
-        
 
         if any(c["name"].lower() == char["name"].lower() for c in context["characters"]):
             print(f"{char['name']} is already in the scene.")
@@ -175,27 +183,21 @@ def handle_command(user_input, context):
         return
         
     elif command == "/unlock":
-        character = state.get_character(arg2)
+        character = get_active_character(context, arg2)
         if character:
-     
-            for c in context["characters"]:
-                if c["name"].lower() == character["name"].lower():
-                    if arg1 not in c["state"]["unlocked_techniques"]:
-                        c["state"]["unlocked_techniques"].append(arg1)
-                        print(f"Unlocked {arg1} for {c['name']}!")
-                    else:
-                        print(f"{c['name']} already has that technique.")
-                    return
-        print("Character not in scene.")
-        
+            if arg1 not in character["state"]["unlocked_techniques"]:
+                character["state"]["unlocked_techniques"].append(arg1)
+                print(f"Unlocked {arg1} for {character['name']}!")
+            else:
+                print(f"{character['name']} already has that technique.")
+        else:
+            print(f"Character '{arg2}' not in scene.")
+            
     elif command == "/condition":
-        character = state.get_character(arg2)
+        character = get_active_character(context, arg2)
         if character:
-            for c in context["characters"]:
-                if c["name"].lower() == character["name"].lower():
-                    c["state"]["conditions"].append(arg1)
-                    print(f"Added condition '{arg1}' to {c['name']}.")
-                    return
+            character["state"]["conditions"].append(arg1)
+            print(f"Added condition '{arg1}' to {character['name']}.")
                     
     elif command == "/length":
         context["response_length"] = arg1

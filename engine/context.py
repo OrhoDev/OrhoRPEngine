@@ -24,7 +24,8 @@ def create_context(state_manager, characters=[], response_length="medium", user_
         "world_state": "",
         "scene": scene,
         "user_character": user_character,
-        "seen_techniques": []
+        "seen_techniques": [],
+        "turn_count": 0
     }
 
 def add_to_history(context, message):
