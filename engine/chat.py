@@ -1,3 +1,4 @@
+import json
 import re
 from context import (add_to_pinned, add_to_history,
                      build_prompt, build_decision_prompt, get_active_character,
@@ -68,10 +69,17 @@ def chat(context):
                 print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
                 continue
 
+        # --- THE VALIDATION FIX ---
+        # Extract mechanics for validation
+        technique_names = set()
+        for c in context["characters"]:
+            technique_names.update(c.get("base_techniques",[]))
+            technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
+        mechanics_block = state.get_technique_details(list(technique_names))
+        world_rules_str = json.dumps(state.world_rules)
 
-        referee_prompt = build_prompt(context, user_input) + \
-            "\n\n[LOGIC CHECK]: Analyze mechanical validity of user's action against provided rules. Do not narrate. Output VALID or INVALID: [Reason]."
-        verdict = ask(referee_prompt, "You are a logic engine. Output only VALID or INVALID followed by a reason.")
+        # Call the imported validate function!
+        verdict = validate(user_input, world_rules_str, context["scene"], mechanics_block)
 
         if "INVALID" in verdict.upper():
             failure_prompt = build_prompt(context, user_input) + \

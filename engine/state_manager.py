@@ -11,13 +11,11 @@ class StateManager:
         self.world_name = world_name
         self.world_path = ROOT_DIR / "worlds" / world_name
         
-
         self.characters = self._load_json("characters.json")
         self.techniques = self._load_json("techniques.json")
         self.world_rules = self._load_json("world.json")
         self.examples = self._load_json("examples.json")
         self.config = self._load_json("config.json")
-        self.examples = self._load_json("examples.json")
 
     def _load_json(self, filename):
         file_path = self.world_path / filename

@@ -28,6 +28,9 @@ def boot_sequence():
 
     active_characters =[]
     for name in char_select:
+        if not name.strip(): # CHANGE: Skip empty names
+            continue
+            
         char_data = state.get_character(name)
         if char_data:
             active_characters.append(char_data)
