@@ -2,7 +2,7 @@ import re
 from context import (add_to_pinned, add_to_history,
                      build_prompt, build_decision_prompt,
                      save_session, load_session, unpin, SYSTEM_PROMPTS,
-                     _detect_tier, _update_seen_techniques)
+                     _detect_tier, _update_seen_techniques, get_active_character)
 
 import sys
 import os

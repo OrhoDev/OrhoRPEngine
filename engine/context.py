@@ -128,6 +128,22 @@ RULES:
 - dialogue: One line maximum. Match Psychology. Empty string if silent.
 """
 
+def get_active_character(context, name):
+    if not name:
+        return None
+    name = name.strip()
+    for character in context["characters"]:
+        # Check for exact match first
+        if character["name"].lower() == name.lower():
+            return character
+        # Check if search name is part of character name
+        if name.lower() in character["name"].lower():
+            return character
+        # Check if character name is part of search name
+        if character["name"].lower() in name.lower():
+            return character
+    return None
+
 def build_prompt(context, user_input, npc_decisions=""):
     state = context["state_manager"]
     active = context["characters"]
