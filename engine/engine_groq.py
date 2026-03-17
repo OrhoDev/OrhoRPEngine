@@ -39,6 +39,29 @@ def ask(prompt, system="", few_shot=None):
 
 def validate(response, world_rules, scene, technique_summary):
     prompt = f"""You are a strict rule validator for a roleplay system.
-<response_to_validate>{response}</response_to_validate>
-Does this response violate world rules or use techniques a character doesn't have? Answer YES or NO only."""
+
+<world_rules>
+{world_rules}
+</world_rules>
+
+<scene>
+{scene}
+</scene>
+
+<available_abilities>
+{technique_summary}
+</available_abilities>
+
+<examples>
+VIOLATION: "Character A summoned a wall of fire" (when not in their abilities list) → YES
+VIOLATION: "Character B dodged at the speed of light" (defying world rules) → YES
+NON-VIOLATION: "Character C hardened their armor and blocked the strike" (using listed ability) → NO
+</examples>
+
+<response_to_validate>
+{response}
+</response_to_validate>
+
+Does the response violate the world rules, scene constraints, or use abilities a character doesn't have? Answer only YES or NO.
+Your answer:"""
     return ask(prompt)
