@@ -6,6 +6,7 @@ from context import (add_to_pinned, add_to_history,
 
 import sys
 import os
+from engine_local import ask as ask_local
 
 try:
     from engine_groq import ask, validate
@@ -115,6 +116,34 @@ def chat(context):
                                     target_char["state"]["conditions"].append(new_condition)
                                     print(f"  [+] MEMORY INJECTED: {target_char['name']} -> '{new_condition}'")
 
+        
+
+
+        # --- BACKGROUND MEMORY COMPACTOR (Local AI) ---
+        context["turn_count"] += 1
+        
+        # Run the compactor every 4 turns, but only if the world_state is getting long
+        if context["turn_count"] % 4 == 0 and len(context["world_state"].split('\n')) > 3:
+            print("\n[SYSTEM LOG]: World State bloated. Triggering Local Memory Compactor...")
+            
+            compactor_system = """You are a background data-compression engine for a simulation. 
+Your job is to read a list of world updates and compress them into a single, dense, factual paragraph.
+RULES:
+1. Remove redundancies (e.g., if a wall is 'cracked' then 'destroyed', just say it is destroyed).
+2. Consolidate character statuses (e.g., if a character is 'bleeding' then 'decapitated', just say they are dead).
+3. Do not write a story. Write a clinical status report.
+4. Output ONLY the compressed summary. No intro, no outro, no formatting."""
+
+            compactor_prompt = f"CURRENT RAW STATE LOG:\n{context['world_state']}\n\nCompress this data."
+            
+            # Send it to the local 8B/3B model!
+            compressed_state = ask_local(compactor_prompt, compactor_system)
+            
+            # Overwrite the bloated string with the clean paragraph
+            if compressed_state:
+                context["world_state"] = compressed_state.strip()
+                print(f"  > Memory Compressed: {context['world_state']}")
+        # ----------------------------------------------
 
         sys_command_matches = re.findall(r"\[SYS_COMMAND:\s*(.*?)\]", response)
         if sys_command_matches:

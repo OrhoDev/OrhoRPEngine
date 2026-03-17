@@ -10,7 +10,7 @@ def ask(prompt, system=""):
         "http://localhost:11434/api/generate",
         json={
             "prompt": prompt,
-            "model": "hermes3:latest",
+            "model": "qwen2.5:7b",
             "system": system,
             "stream": False,
             "options": {
