@@ -119,31 +119,29 @@ def chat(context):
         
 
 
-        # --- BACKGROUND MEMORY COMPACTOR (Local AI) ---
+    
         context["turn_count"] += 1
         
-        # Run the compactor every 4 turns, but only if the world_state is getting long
         if context["turn_count"] % 4 == 0 and len(context["world_state"].split('\n')) > 3:
             print("\n[SYSTEM LOG]: World State bloated. Triggering Local Memory Compactor...")
             
             compactor_system = """You are a background data-compression engine for a simulation. 
 Your job is to read a list of world updates and compress them into a single, dense, factual paragraph.
 RULES:
-1. Remove redundancies (e.g., if a wall is 'cracked' then 'destroyed', just say it is destroyed).
-2. Consolidate character statuses (e.g., if a character is 'bleeding' then 'decapitated', just say they are dead).
+1. Remove redundancies.
+2. Consolidate character statuses.
 3. Do not write a story. Write a clinical status report.
-4. Output ONLY the compressed summary. No intro, no outro, no formatting."""
+4. Output ONLY the compressed summary."""
 
             compactor_prompt = f"CURRENT RAW STATE LOG:\n{context['world_state']}\n\nCompress this data."
             
-            # Send it to the local 8B/3B model!
-            compressed_state = ask_local(compactor_prompt, compactor_system)
-            
-            # Overwrite the bloated string with the clean paragraph
-            if compressed_state:
-                context["world_state"] = compressed_state.strip()
-                print(f"  > Memory Compressed: {context['world_state']}")
-        # ----------------------------------------------
+            try:
+                compressed_state = ask_local(compactor_prompt, compactor_system)
+                if compressed_state and "error" not in compressed_state.lower():
+                    context["world_state"] = compressed_state.strip()
+                    print(f"  > Memory Compressed: {context['world_state']}")
+            except Exception:
+                print("  >[SYSTEM LOG]: Local compactor unavailable, skipping compression.")
 
         sys_command_matches = re.findall(r"\[SYS_COMMAND:\s*(.*?)\]", response)
         if sys_command_matches:
@@ -174,7 +172,7 @@ def handle_command(user_input, context):
     parts = user_input.split(" ", 1)
     command = parts[0]
     rest = parts[1].strip() if len(parts) > 1 else ""
-    arg_parts = rest.split(" ", 1)
+    arg_parts = rest.rsplit(" ", 1)
     arg1 = arg_parts[0] if arg_parts else None
     arg2 = arg_parts[1] if len(arg_parts) > 1 else None
 
@@ -242,4 +240,7 @@ def handle_command(user_input, context):
         
     elif command == "/load":
         print("Session loaded.")
-        return load_session()
+        loaded_context = load_session()
+        # CHANGE: Reattach the StateManager so the engine doesn't crash on the next turn!
+        loaded_context["state_manager"] = context["state_manager"] 
+        return loaded_context

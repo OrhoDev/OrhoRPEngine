@@ -12,6 +12,18 @@ SYSTEM_PROMPTS = load_system_prompts()
 
 def create_context(state_manager, characters=[], response_length="medium", user_character="", scene="", mode="api"):
     system = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS.get("api"))
+    
+    config = state_manager.config
+    
+    system = system.replace("{system_directive}", config.get("system_directive", "You are a roleplay engine."))
+    system = system.replace("{narrator_style}", config.get("narrator_style", "Be descriptive and objective."))
+    
+    forbidden_list = "\n- ".join(config.get("forbidden_words", []))
+    system = system.replace("{forbidden_words}", forbidden_list)
+    
+    system = system.replace("{magic_system}", config.get("terminology", {}).get("magic_system", "magic"))
+    system = system.replace("{ultimate_move}", config.get("terminology", {}).get("ultimate_move", "ultimate attack"))
+    
     return {
         "state_manager": state_manager,
         "system": system,
@@ -63,7 +75,7 @@ def _detect_tier(user_input, context):
     lower = user_input.lower()
     state = context["state_manager"]
     
-    tier1_keywords = ["domain expansion", "domain expand", "bankai", "ultimate"] 
+    tier1_keywords = ["domain expansion", "domain expand", "bankai", "ultimate", "maximum", "overdrive", "special attack", "field expansion"] 
     if any(k in lower for k in tier1_keywords):
         return "tier1"
 

@@ -5,26 +5,34 @@ TEMPERATURE = 0.30
 TOP_K = 40
 
 
-def ask(prompt, system=""):
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "prompt": prompt,
-            "model": "qwen2.5:7b",
-            "system": system,
-            "stream": False,
-            "options": {
-                "num_ctx": 4096,
-                "temperature": TEMPERATURE,
-                "top_k": TOP_K,
-                "repeat_penalty": 1.1,
+def ask(prompt, system="", few_shot=None):
+    # Bake the few_shot example into the prompt for the local model
+    if few_shot:
+        system += f"\n\nExample Output Pattern:\n{few_shot['output']}"
+        prompt = f"Example Action:\n{few_shot['input']}\n\nNow process this action:\n{prompt}"
+
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "prompt": prompt,
+                "model": "qwen2.5:7b",
+                "system": system,
+                "stream": False,
+                "options": {
+                    "num_ctx": 4096,
+                    "temperature": TEMPERATURE,
+                    "top_k": TOP_K,
+                    "repeat_penalty": 1.1,
+                },
             },
-        },
-    )
-    
-    response_data = response.json()
-    
-    return response_data["response"]
+        )
+        response.raise_for_status()
+        response_data = response.json()
+        return response_data["response"]
+    except requests.exceptions.RequestException as e:
+        print(f"\n[ENGINE ERROR]: Local AI failed to respond (Is Ollama running?). Detail: {e}")
+        return "(Local engine error.)"
 
 def validate(response, world_rules, scene, technique_summary):
     prompt = f"""You are a strict rule validator for a roleplay system.
