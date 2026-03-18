@@ -233,22 +233,19 @@ RULES:
                 compressed_state = ask_local(compactor_prompt, compactor_system)
                 if compressed_state and "error" not in compressed_state.lower():
                     context["world_state"] = compressed_state.strip()
-                    print(f"  > Memory Compressed: {context['world_state']}")
-            except Exception:
-                print("  >[SYSTEM LOG]: Local compactor unavailable, skipping compression.")
+            except Exception as e:
+                print(f"  >[SYSTEM LOG]: Local compactor unavailable, skipping compression. Error: {e}")
 
         sys_command_matches = re.findall(r"\[SYS_COMMAND:\s*(.*?)\]", response)
         if sys_command_matches:
-            print("\n[AI SYSTEM EVENT DETECTED]")
             for cmd in sys_command_matches:
-                print(f"  > Executing Agent Command: {cmd}")
                 handle_command(cmd, context)
 
         final_output = narration_match.group(1).strip() if narration_match else "(No narration block returned.)"
 
         final_output = re.sub(r"\[SYS_COMMAND:\s*.*?\]", "", final_output).strip()
 
-        clean_lines =[]
+        clean_lines = []
         for line in final_output.split('\n'):
             line = line.strip()
             if line:
@@ -360,10 +357,8 @@ def handle_command(user_input, context):
                     
                     if command == "/damage":
                         stats["hp"] -= amt
-                        print(f"  [MATH] {target['name']} took {amt} damage! ({h_name}: {stats['hp']}/{stats['max_hp']})")
                     else:
                         stats["hp"] = min(stats["max_hp"], stats["hp"] + amt)
-                        print(f"  [MATH] {target['name']} healed for {amt}! ({h_name}: {stats['hp']}/{stats['max_hp']})")
             except ValueError:
                 pass
         return
@@ -382,9 +377,9 @@ def handle_command(user_input, context):
         print(f"{char['name']} is not in the scene.")
         return
         
-    # --- NEW: SPAWN COMMAND LOGIC ---
+
     elif command == "/spawn":
-        # Handle formats: /spawn "Divine Dog" OR /spawn Divine Dog
+
         match = re.search(r'"([^"]+)"', rest)
         if match:
             char_name = match.group(1)
@@ -393,15 +388,29 @@ def handle_command(user_input, context):
             
         char = state.get_character(char_name)
         if char:
-            # Prevent spawning duplicates
+    
             if not any(c["name"].lower() == char["name"].lower() for c in context["characters"]):
                 context["characters"].append(char)
-                print(f"  [+] SUMMONED: {char['name']} has entered the battlefield!")
             else:
-                print(f"  [!] {char['name']} is already on the battlefield.")
+                pass  # Already in scene
         else:
             print(f"  [!] Spawn failed: Entity '{char_name}' not found in database.")
         return
-    # --------------------------------
+
+    elif command == "/damage_all":
+   
+        try:
+            amt = int(rest.strip())
+            h_name = state.config.get("system_math", {}).get("health_stat", "HP")
+            for target in context["characters"]:
+        
+                if target["name"].lower() != context["user_character"].lower():
+                    stats = target["state"]["stats"]
+                    stats["hp"] -= amt
+                    print(f"  [AOE MATH] {target['name']} took {amt} damage! ({h_name}: {stats['hp']})")
+        except ValueError:
+            pass
+        return
+
 
         

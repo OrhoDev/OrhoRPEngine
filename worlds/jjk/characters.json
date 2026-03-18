@@ -396,5 +396,34 @@
         "Zenin Clan": "sworn enemies (annihilated)"
       }
     }
+  },
+
+  "divine_dog_totality": {
+    "name": "Divine Dog: Totality",
+    "personality": "A fiercely loyal, predatory wolf. Highly intelligent and protective of Megumi.",
+    "psychology_and_rp": "Acts on instinct and Megumi's mental commands. Never speaks. Communicates through growls and body language. Purely focused on the hunt.",
+    "combat_behavior": "Uses extreme speed and claws to shred targets. Targets the throat. Coordinates perfectly with Megumi's movements to strike from blind spots.",
+    "base_techniques": ["Superhuman Physicals", "Tracking Instinct"],
+    "state": {
+      "form": "totality",
+      "conditions": ["Summoned"],
+      "unlocked_techniques": []
+    }
+  },
+  "nue": {
+    "name": "Nue",
+    "personality": "An avian shikigami with electrical properties.",
+    "psychology_and_rp": "Cold and tactical. hovers above the battlefield waiting for an opening. Screeches to disorient foes.",
+    "combat_behavior": "Dives from high altitudes to deliver electrical shocks. Uses its wings to create powerful gusts of wind. Prioritizes aerial superiority.",
+    "base_techniques": ["Electricity Discharge", "Aerial Strike"],
+    "state": { "form": "base", "conditions": ["Summoned"] }
+  },
+
+  "rabbit_escape": {
+    "name": "Rabbit Escape (Swarm)",
+    "personality": "A chaotic, infinite mass of rabbits.",
+    "combat_behavior": "Floods the entire scene. Does zero damage but forces the 'Blinded' and 'Overwhelmed' conditions on all enemies. Uses numbers to block line of sight.",
+    "base_techniques": ["Biological Smokescreen"],
+    "state": { "stats": { "hp": 999, "ce": 0 } }
   }
 }
