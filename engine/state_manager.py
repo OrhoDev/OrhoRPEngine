@@ -27,13 +27,37 @@ class StateManager:
     def get_character(self, name):
         """Retrieve a character by exact or partial name."""
         name = name.lower().strip()
-        if name in self.characters:
-            return self.characters[name]
+        found_char = None
         
-        for key, char_data in self.characters.items():
-            if name in char_data["name"].lower():
-                return char_data
-        return None
+        if name in self.characters:
+            found_char = self.characters[name]
+        else:
+            for key, char_data in self.characters.items():
+                if name in char_data["name"].lower():
+                    found_char = char_data
+                    break
+
+        if found_char:
+            if "stats" not in found_char.setdefault("state", {}):
+                math_cfg = self.config.get("system_math", {})
+                max_hp = math_cfg.get("base_max_health", 100)
+                max_energy = math_cfg.get("base_max_energy", 100)
+                
+                all_techs = found_char.get("base_techniques", []) + found_char["state"].get("unlocked_techniques",[])
+                overrides = math_cfg.get("trait_overrides", {})
+                
+                for tech in all_techs:
+                    if tech in overrides:
+                        max_hp = overrides[tech].get("max_health", max_hp)
+                        max_energy = overrides[tech].get("max_energy", max_energy)
+                        
+                found_char["state"]["stats"] = {
+                    "hp": max_hp, "max_hp": max_hp,
+                    "energy": max_energy, "max_energy": max_energy
+                }
+                found_char["state"]["cooldowns"] = {}
+                
+        return found_char
 
     def get_technique_details(self, technique_list):
         """Fetch mechanics for a list of techniques, ignoring missing ones."""

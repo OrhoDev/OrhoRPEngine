@@ -10,5 +10,31 @@
   "terminology": {
     "magic_system": "Cursed Energy",
     "ultimate_move": "Domain Expansion"
+  },
+    "system_math": {
+    "health_stat": "HP",
+    "energy_stat": "CE",
+    "base_max_health": 100,
+    "base_max_energy": 100,
+    "ability_tiers":[
+      {
+        "name": "Ultimate",
+        "triggers":["domain expansion", "maximum", "hollow", "furnace", "supernova"],
+        "cost": 40,
+        "cooldown": 3
+      },
+      {
+        "name": "Standard",
+        "triggers": [""],
+        "cost": 10,
+        "cooldown": 0
+      }
+    ],
+    "trait_overrides": {
+      "Six Eyes": { "energy_multiplier": 0.0, "max_energy": 500 },
+      "Immense Cursed Energy": { "max_energy": 250 },
+      "Heavenly Restriction (Complete)": { "max_energy": 0, "energy_multiplier": 0.0 },
+      "Heavenly Restriction (Incomplete)": { "max_energy": 10, "energy_multiplier": 0.0 }
+    }
   }
 }

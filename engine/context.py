@@ -71,6 +71,21 @@ def _char_to_narrator_block(character):
 **Conditions:** {condition_text}
 **Form:** {character.get('state', {}).get('form', 'base')}"""
 
+
+def _build_combat_status_block(context):
+    math_cfg = context["state_manager"].config.get("system_math", {})
+    h_name = math_cfg.get("health_stat", "HP")
+    e_name = math_cfg.get("energy_stat", "MP")
+    
+    res_blocks = []
+    for c in context["characters"]:
+        stats = c.get("state", {}).get("stats", {"hp": 100, "energy": 100})
+        cds = c.get("state", {}).get("cooldowns", {})
+        cd_str = ", ".join([f"{k} ({v}T)" for k, v in cds.items()]) or "None"
+        res_blocks.append(f"{c['name']} - {h_name}: {stats['hp']} | {e_name}: {stats['energy']} | Cooldowns: {cd_str}")
+    
+    return "<combat_status>\n" + "\n".join(res_blocks) + "\n</combat_status>"
+
 def _detect_tier(user_input, context):
     lower = user_input.lower()
     state = context["state_manager"]
@@ -123,6 +138,8 @@ def build_decision_prompt(context, user_input):
     npc_text = "\n\n".join(npc_blocks)
     npc_names = [c["name"] for c in npcs]
 
+    combat_status_text = _build_combat_status_block(context)
+
     json_template = "{{\n  \"environment_event\": \"...\",\n" + ",\n".join([
         f'  "{name}": {{\n    "action": "...",\n    "dialogue": "...",\n    "target": "..."\n  }}'
         for name in npc_names
@@ -131,11 +148,12 @@ def build_decision_prompt(context, user_input):
     return f"""<scene>\n{context["scene"]}\n</scene>\n
 <user_action>\n{context["user_character"]}: "{user_input}"\n</user_action>\n
 <npcs>\n{npc_text}\n</npcs>\n
+{combat_status_text}\n
 Decide what each NPC does this turn in direct response to the user's action. Output ONLY raw JSON. No preamble. No explanation.\n
 {json_template}\n
 RULES:
 - You are deciding actions for NPCs ONLY. 
-- ESCALATION MANDATE: If there is a threat, a mystery, or a lull, NPCs MUST take a proactive physical action (draw weapon, investigate).
+- ACTION ECONOMY: Only 1 or 2 NPCs may take aggressive physical action this turn. The rest MUST observe, reposition, or guard. Do not crowd the initiative.
 - ENVIRONMENT CONTROL: You control the world and unnamed entities. Use "environment_event" to describe their reactions.
 - action: A concrete technique or movement.
 - dialogue: One line maximum. Match Psychology. Empty string if silent.
@@ -169,22 +187,26 @@ def build_prompt(context, user_input, npc_decisions=""):
         technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
     mechanics_block = state.get_technique_details(list(technique_names))
 
-
+    # --- THE SEMANTIC RAG FIX ---
+    rule_triggers = {
+        "physics":["ce", "cursed energy", "reinforcement", "output"],
+        "soul":["soul", "incarnation", "vessel", "heal"],
+        "vows":["vow", "binding", "contract", "promise", "pact"],
+        "advanced_operations":["rct", "reverse", "burnout", "brain"],
+        "barriers":["domain", "barrier", "simple domain", "hwb", "sure-hit"],
+        "phenomena":["black flash", "zone", "heavenly restriction", "zero ce"]
+    }
+    
     world_briefing =[]
     search_text = (user_input + " " + context['scene'] + " " + npc_decisions).lower()
     
     if state.world_rules:
-
-        keys = list(state.world_rules.keys())
-        if keys:
-            world_briefing.append(state.world_rules[keys[0]])
-            
-   
-        for key in keys[1:]:
-      
-            keywords = key.split("_")
-            if any(k in search_text for k in keywords):
-                world_briefing.append(state.world_rules[key])
+        if "physics" in state.world_rules:
+            world_briefing.append(state.world_rules["physics"])
+        for key, triggers in rule_triggers.items():
+            if key in state.world_rules and any(t in search_text for t in triggers):
+                if key != "physics":
+                    world_briefing.append(state.world_rules[key])
                 
     world_text = "\n".join(world_briefing)
 
@@ -192,6 +214,13 @@ def build_prompt(context, user_input, npc_decisions=""):
     npc_string = ", ".join(npc_names) if npc_names else "None"
 
     resolved_block = f"""<resolved_npc_actions>\n{npc_decisions}\n</resolved_npc_actions>""" if npc_decisions else ""
+    
+    # GET COMBAT STATUS
+    combat_status_text = _build_combat_status_block(context)
+    
+    pinned_text = ""
+    if context["important"]:
+        pinned_text = "\n<pinned_memory>\n" + "\n".join(context["important"]) + "\n</pinned_memory>\n"
 
     return f"""<engine_data>
 # WORLD RULES
@@ -206,9 +235,11 @@ def build_prompt(context, user_input, npc_decisions=""):
 # ACTIVE COMBATANTS
 {char_text}
 
+{combat_status_text}
+
 # RELEVANT MECHANICS
 {mechanics_block}
-</engine_data>
+</engine_data>{pinned_text}
 
 <history>
 {chr(10).join(context['history'][-context['max_his_size']:]) or 'No previous actions.'}
@@ -218,12 +249,15 @@ def build_prompt(context, user_input, npc_decisions=""):
 {context['user_character']} action: "{user_input}"
 </user_action>
 
-{resolved_block}
-
-[SYSTEM COMMAND: EXECUTE SIMULATION TICK]
+{resolved_block}[SYSTEM COMMAND: EXECUTE SIMULATION TICK]
 ALLOWED TO ACT/SPEAK: {npc_string}
 FORBIDDEN TO ACT/SPEAK: {context['user_character']}
 INSTRUCTION: The <resolved_npc_actions> block contains exactly what each NPC decided to do this turn. Narrate those decisions using the technique mechanics above. Do not invent new actions. Do not override the decisions.
 CRITICAL: The <narration> block must NEVER describe {context['user_character']}'s body, movements, eyes, hands, or internal state. Begin narration with environmental or mechanical consequence of the action only.
+AGENTIC HOOKS: 
+- If an attack lands and damages someone, output[SYS_COMMAND: /damage 20 CharacterName] (Value: 10 for light, 30 for heavy, 50+ for fatal).
+- If someone heals, output [SYS_COMMAND: /heal 20 CharacterName].
+- If an entity is summoned, output [SYS_COMMAND: /spawn "EntityName"].
+- If the environment changes significantly (e.g., a building collapses, moving outside), output <scene_update>New Scene Description</scene_update>.
 Task: Start your response immediately with <analysis>. Do not write any text before the <analysis> tag.
 """
