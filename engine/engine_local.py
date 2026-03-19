@@ -1,12 +1,9 @@
 import requests
 
-
 TEMPERATURE = 0.30
 TOP_K = 40
 
-
 def ask(prompt, system="", few_shot=None):
-    # Bake the few_shot example into the prompt for the local model
     if few_shot:
         system += f"\n\nExample Output Pattern:\n{few_shot['output']}"
         prompt = f"Example Action:\n{few_shot['input']}\n\nNow process this action:\n{prompt}"
@@ -29,36 +26,29 @@ def ask(prompt, system="", few_shot=None):
         )
         response.raise_for_status()
         response_data = response.json()
-        return response_data["response"]
+        
+        content = response_data["response"]
+        p_tokens = response_data.get("prompt_eval_count", 0)
+        c_tokens = response_data.get("eval_count", 0)
+        
+        return content, p_tokens, c_tokens
     except requests.exceptions.RequestException as e:
         print(f"\n[ENGINE ERROR]: Local AI failed to respond (Is Ollama running?). Detail: {e}")
-        return "(Local engine error.)"
+        return "(Local engine error.)", 0, 0
 
 def validate(response, world_rules, scene, technique_summary):
-    prompt = f"""You are a strict rule validator for a roleplay system.
+    prompt = f"""You are a strict logic engine.
+<world_rules>\n{world_rules}\n</world_rules>
+<scene>\n{scene}\n</scene>
+<available_abilities>\n{technique_summary}\n</available_abilities>
 
-<world_rules>
-{world_rules}
-</world_rules>
+Evaluate the user's intended action. Does it violate physics, or use a technique they do not possess?
+Output EXACTLY one of these two formats. No other text:
+VALID
+INVALID: [State the exact mechanical reason why it fails]
 
-<scene>
-{scene}
-</scene>
-
-<available_abilities>
-{technique_summary}
-</available_abilities>
-
-<examples>
-VIOLATION: "Character A summoned a wall of fire" (when not in their abilities list) → YES
-VIOLATION: "Character B dodged at the speed of light" (defying world rules) → YES
-NON-VIOLATION: "Character C hardened their armor and blocked the strike" (using listed ability) → NO
-</examples>
-
-<response_to_validate>
-{response}
-</response_to_validate>
-
-Does the response violate the world rules, scene constraints, or use abilities a character doesn't have? Answer only YES or NO.
-Your answer:"""
-    return ask(prompt)
+User Action: {response}"""
+    
+    # Because ask() returns (content, p_tokens, c_tokens), 
+    # validate() will seamlessly return that same tuple back to chat.py!
+    return ask(prompt, system="You are a strict referee. Output only VALID or INVALID: [reason].")

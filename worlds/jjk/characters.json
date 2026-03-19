@@ -425,5 +425,13 @@
     "combat_behavior": "Floods the entire scene. Does zero damage but forces the 'Blinded' and 'Overwhelmed' conditions on all enemies. Uses numbers to block line of sight.",
     "base_techniques": ["Biological Smokescreen"],
     "state": { "stats": { "hp": 999, "ce": 0 } }
+  },
+  "spirit_swarm": {
+    "name": "Low-Grade Spirit Swarm",
+    "personality": "A collective of mindless, low-level curses.",
+    "psychology_and_rp": "Hostile, buzzing, and swarm-minded. No individual identity.",
+    "combat_behavior": "Overwhelms targets through sheer numbers. Distracts and obscures vision to allow Geto to reposition. Dies instantly to any significant CE output.",
+    "base_techniques": ["Swarm Pressure"],
+    "state": { "stats": { "hp": 20, "ce": 0 }, "conditions": ["Summoned"] }
   }
 }

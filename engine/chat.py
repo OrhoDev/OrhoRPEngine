@@ -107,12 +107,30 @@ def chat(context):
         e_name = math_cfg.get("energy_stat", "MP")
 
         is_combat, tech_name = is_combat_move(user_input, context)
+     # --- SAFE COMBAT MATH CHECK ---
+        is_combat, tech_name = is_combat_move(user_input, context)
         if is_combat:
             active_char = get_active_character(context, context['user_character'])
+            
+            # CRITICAL FIX 1: Check if the character exists BEFORE checking their stats!
+            if active_char is None:
+                print(f"\n[Referee]: Character '{context['user_character']}' not found in scene.")
+                continue
+                
+            if not is_technique_allowed(tech_name, active_char):
+                print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
+                continue
 
             cost, cd = calculate_tech_cost(tech_name, active_char, state.config)
             cooldowns = active_char["state"]["cooldowns"]
             stats = active_char["state"]["stats"]
+            current_statuses = active_char["state"].get("status_effects", {})
+            blockers =["stunned", "burnout", "paralyzed", "unconscious", "frozen"]
+            active_blockers = [s for s in current_statuses if s.lower() in blockers]
+
+            if active_blockers:
+                print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} is {active_blockers[0]} and cannot act.")
+                continue
 
             if cooldowns.get(tech_name, 0) > 0:
                 print(f"\n[Referee]: ACCESS DENIED. '{tech_name}' is on cooldown for {cooldowns[tech_name]} more turns.")
@@ -126,35 +144,44 @@ def chat(context):
             stats["energy"] -= cost
             if cd > 0:
                 cooldowns[tech_name] = cd
-            if active_char is None:
-                print(f"\n[Referee]: Character '{context['user_character']}' not found in scene.")
-                continue
-            if not is_technique_allowed(tech_name, active_char):
-                print(f"\n[Referee]: ACCESS DENIED. {active_char['name']} has not unlocked '{tech_name}'.")
-                continue
 
+        # --- INIT TOKEN TRACKERS ---
+        context.setdefault("total_prompt_tokens", 0)
+        context.setdefault("total_completion_tokens", 0)
+        turn_p_tokens = 0
+        turn_c_tokens = 0
 
-        technique_names = set()
-        for c in context["characters"]:
-            technique_names.update(c.get("base_techniques",[]))
-            technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
-        mechanics_block = state.get_technique_details(list(technique_names))
+        # --- CRITICAL FIX 3: TOKEN EFFICIENT VALIDATION ---
+        # Instead of sending the 5000-token mechanics block to the Referee, we just send a list of the user's moves!
+        user_char_val = get_active_character(context, context['user_character'])
+        if user_char_val:
+            user_techs = user_char_val.get("base_techniques",[]) + user_char_val.get("state", {}).get("unlocked_techniques",[])
+            user_tech_summary = ", ".join(user_techs) if user_techs else "Basic Melee"
+        else:
+            user_tech_summary = "None"
+            
         world_rules_str = json.dumps(state.world_rules)
 
-        verdict = validate(user_input, world_rules_str, context["scene"], mechanics_block)
+        # CRITICAL FIX 2: Safely unpack the tuple!
+        verdict, v_p, v_c = validate(user_input, world_rules_str, context["scene"], user_tech_summary)
+        turn_p_tokens += v_p
+        turn_c_tokens += v_c
 
         if "INVALID" in verdict.upper():
             failure_prompt = build_prompt(context, user_input) + \
                 f"\n[INSTRUCTION]: The user's action is mechanically impossible. Narrate the attempt and failure only. Technical reason: {verdict}"
-            response = ask(failure_prompt, context["system"])
+            response, p, c = ask(failure_prompt, context["system"])
+            turn_p_tokens += p; turn_c_tokens += c
+            
+            npc_decisions = "" # No NPC actions if user failed
         else:
-
-            npc_decisions = ask(
+            npc_decisions_raw, p, c = ask(
                 build_decision_prompt(context, user_input),
                 SYSTEM_PROMPTS["decision"]
             )
+            turn_p_tokens += p; turn_c_tokens += c
 
-            parsed_decisions = clean_json_output(npc_decisions)
+            parsed_decisions = clean_json_output(npc_decisions_raw)
             if not parsed_decisions:
                 print("\n[SYSTEM WARNING]: Decision Engine output malformed JSON. Defaulting to passive state.")
                 npc_decisions = "NPCs hold their positions and observe."
@@ -171,11 +198,17 @@ def chat(context):
                             if cd > 0:
                                 npc_char["state"]["cooldowns"][npc_tech] = cd
 
-
             tier = _detect_tier(user_input, context)
             few_shot = state.examples.get(tier)
             narration_prompt = build_prompt(context, user_input, npc_decisions=npc_decisions)
-            response = ask(narration_prompt, context["system"], few_shot=few_shot)
+            
+            response, p, c = ask(narration_prompt, context["system"], few_shot=few_shot)
+            turn_p_tokens += p; turn_c_tokens += c
+
+        # --- UPDATE SESSION TOKENS ---
+        context["total_prompt_tokens"] += turn_p_tokens
+        context["total_completion_tokens"] += turn_c_tokens
+        print(f"\n[TOKEN STATS] Turn Cost: {turn_p_tokens} P / {turn_c_tokens} C | Session Total: {context['total_prompt_tokens'] + context['total_completion_tokens']}")
 
         narration_match = re.search(r"<narration>(.*?)</narration>", response, re.DOTALL)
         world_update_match = re.search(r"<world_update>(.*?)</world_update>", response, re.DOTALL)
@@ -230,7 +263,9 @@ RULES:
             compactor_prompt = f"CURRENT RAW STATE LOG:\n{context['world_state']}\n\nCompress this data."
             
             try:
-                compressed_state = ask_local(compactor_prompt, compactor_system)
+                compressed_state, p, c = ask_local(compactor_prompt, compactor_system)
+                context["total_prompt_tokens"] += p
+                context["total_completion_tokens"] += c
                 if compressed_state and "error" not in compressed_state.lower():
                     context["world_state"] = compressed_state.strip()
             except Exception as e:
@@ -261,11 +296,27 @@ RULES:
         add_to_history(context, formatted_output)
 
         for char in context["characters"]:
+            # 1. Tick Cooldowns (already have this)
             cds = char["state"].get("cooldowns", {})
             for tech in list(cds.keys()):
                 cds[tech] -= 1
-                if cds[tech] <= 0:
-                    del cds[tech]
+                if cds[tech] <= 0: del cds[tech]
+
+            # 2. Tick Status Effects
+            statuses = char["state"].get("status_effects", {})
+            for effect in list(statuses.keys()):
+                # Apply Tick Damage (Modular)
+                dot_effects = {"bleeding": 5, "poisoned": 10, "burning": 15}
+                if effect.lower() in dot_effects:
+                    dmg = dot_effects[effect.lower()]
+                    char["state"]["stats"]["hp"] -= dmg
+                    print(f"  [STATUS DMG] {char['name']} takes {dmg} from {effect}! (HP: {char['state']['stats']['hp']})")
+                
+                # Lower duration
+                statuses[effect] -= 1
+                if statuses[effect] <= 0:
+                    print(f"  [STATUS END] {char['name']} is no longer {effect}.")
+                    del statuses[effect]
 
 def handle_command(user_input, context):
     state = context["state_manager"]
@@ -391,10 +442,10 @@ def handle_command(user_input, context):
     
             if not any(c["name"].lower() == char["name"].lower() for c in context["characters"]):
                 context["characters"].append(char)
+                # Silent success - no debug output
             else:
-                pass  # Already in scene
-        else:
-            print(f"  [!] Spawn failed: Entity '{char_name}' not found in database.")
+                # Silent failure - no debug output
+                pass
         return
 
     elif command == "/damage_all":
@@ -410,6 +461,21 @@ def handle_command(user_input, context):
                     print(f"  [AOE MATH] {target['name']} took {amt} damage! ({h_name}: {stats['hp']})")
         except ValueError:
             pass
+        return
+
+    elif command == "/condition":
+        match = re.search(r'"([^"]+)"\s+(\d+)\s+(.+)', rest)
+        if match:
+            effect_name = match.group(1)
+            duration = int(match.group(2))
+            target_name = match.group(3)
+            
+            target = get_active_character(context, target_name)
+            if target:
+                # Store as a dict with a timer
+                target["state"].setdefault("status_effects", {})
+                target["state"]["status_effects"][effect_name] = duration
+                print(f"  [STATUS] {target['name']} afflicted with {effect_name} for {duration} turns.")
         return
 
 

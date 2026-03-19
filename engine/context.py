@@ -81,8 +81,16 @@ def _build_combat_status_block(context):
     for c in context["characters"]:
         stats = c.get("state", {}).get("stats", {"hp": 100, "energy": 100})
         cds = c.get("state", {}).get("cooldowns", {})
-        cd_str = ", ".join([f"{k} ({v}T)" for k, v in cds.items()]) or "None"
-        res_blocks.append(f"{c['name']} - {h_name}: {stats['hp']} | {e_name}: {stats['energy']} | Cooldowns: {cd_str}")
+        
+        statuses = c.get("state", {}).get("status_effects", {})
+        status_str = ", ".join([f"{k}[{v}T]" for k, v in statuses.items()]) or "Healthy"
+        
+        cd_str = ", ".join([f"{k}({v}T)" for k, v in cds.items()]) or "None"
+        
+        res_blocks.append(
+            f"{c['name']} | {h_name}: {stats['hp']} | {e_name}: {stats['energy']} | "
+            f"Status: {status_str} | CDs: {cd_str}"
+        )
     
     return "<combat_status>\n" + "\n".join(res_blocks) + "\n</combat_status>"
 
@@ -121,6 +129,18 @@ def build_decision_prompt(context, user_input):
     if not npcs:
         return ""
 
+    relationship_lines = []
+    for char in npcs:
+        rels = char.get("state", {}).get("relationships", {})
+        # Only list relationships with people actually present in the scene
+        present_rels = {k: v for k, v in rels.items() if any(c["name"].lower() == k.lower() for c in npcs)}
+        
+        if present_rels:
+            rel_str = ", ".join([f"{k} ({v})" for k, v in present_rels.items()])
+            relationship_lines.append(f"- {char['name']} sees: {rel_str}")
+    
+    social_map = "\n".join(relationship_lines) if relationship_lines else "No established relationships."
+
     npc_blocks =[]
     for npc in npcs:
         goals = ", ".join(npc.get("goals",[])) or "none"
@@ -145,18 +165,29 @@ def build_decision_prompt(context, user_input):
         for name in npc_names
     ]) + "\n}}"
 
-    return f"""<scene>\n{context["scene"]}\n</scene>\n
-<user_action>\n{context["user_character"]}: "{user_input}"\n</user_action>\n
-<npcs>\n{npc_text}\n</npcs>\n
-{combat_status_text}\n
-Decide what each NPC does this turn in direct response to the user's action. Output ONLY raw JSON. No preamble. No explanation.\n
-{json_template}\n
-RULES:
-- You are deciding actions for NPCs ONLY. 
-- ACTION ECONOMY: Only 1 or 2 NPCs may take aggressive physical action this turn. The rest MUST observe, reposition, or guard. Do not crowd the initiative.
-- ENVIRONMENT CONTROL: You control the world and unnamed entities. Use "environment_event" to describe their reactions.
-- action: A concrete technique or movement.
-- dialogue: One line maximum. Match Psychology. Empty string if silent.
+    return f"""<scene>
+{context["scene"]}
+</scene>
+
+<user_action>
+{context["user_character"]}: "{user_input}"
+</user_action>
+
+<npcs>
+{npc_text}
+</npcs>
+
+{combat_status_text}
+
+[SPAWNABLE ENTITIES]
+The following entities exist in the database and can be summoned using [SYS_COMMAND: /spawn "Name"]:
+spirit_swarm, divine_dog_totality, nue, rabbit_escape
+
+[RELATIONSHIP INSTRUCTIONS]
+- REFER TO <social_map>: Do not attack characters listed as allies, family, or friends unless NPC's Goals/Psychology explicitly demand betrayal.
+- CHECK COMBAT STATE: If any character has taken damage or used energy, the scene is in COMBAT. NPCs must act tactically.
+- Output ONLY raw JSON matching this structure:
+{json_template}
 """
 
 def get_active_character(context, name):
@@ -181,11 +212,25 @@ def build_prompt(context, user_input, npc_decisions=""):
 
     char_text = "\n\n".join([_char_to_narrator_block(c) for c in active])
 
-    technique_names = set()
+    all_known_techs = set()
     for c in active:
-        technique_names.update(c.get("base_techniques",[]))
-        technique_names.update(c.get("state", {}).get("unlocked_techniques",[]))
-    mechanics_block = state.get_technique_details(list(technique_names))
+        all_known_techs.update(c.get("base_techniques",[]))
+        all_known_techs.update(c.get("state", {}).get("unlocked_techniques",[]))
+        
+    search_text = (user_input + " " + npc_decisions).lower()
+    
+    # Only load mechanics if the name is mentioned in the text
+    active_techs = [t for t in all_known_techs if t.lower() in search_text]
+    
+    # Always load passive traits that change fundamental physics
+    passives =[
+        "Six Eyes", "Limitless", "Immense Cursed Energy", "Soul Strike", 
+        "Heavenly Restriction (Complete)", "Heavenly Restriction (Incomplete)", 
+        "Domain Immunity", "Master Weapons Specialist", "Below-Average Close Quarters Combat"
+    ]
+    active_techs +=[t for t in all_known_techs if t in passives]
+    
+    mechanics_block = state.get_technique_details(list(set(active_techs)))
 
     # --- THE SEMANTIC RAG FIX ---
     rule_triggers = {

@@ -33,35 +33,26 @@ def ask(prompt, system="", few_shot=None):
     
     if "choices" not in response_json:
         print(f"ERROR: Rate Limit or API Error. Full response: {response_json}")
-        return f"API Error: {response_json}"
+        return f"API Error: {response_json}", 0, 0
     
-    return response_json["choices"][0]["message"]["content"]
+    content = response_json["choices"][0]["message"]["content"]
+    usage = response_json.get("usage", {})
+    
+    return content, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
 
 def validate(response, world_rules, scene, technique_summary):
-    prompt = f"""You are a strict rule validator for a roleplay system.
+    prompt = f"""You are a strict logic engine.
+<world_rules>\n{world_rules}\n</world_rules>
+<scene>\n{scene}\n</scene>
+<available_abilities>\n{technique_summary}\n</available_abilities>
 
-<world_rules>
-{world_rules}
-</world_rules>
+Evaluate the user's intended action. Does it violate physics, or use a technique they do not possess?
+Output EXACTLY one of these two formats. No other text:
+VALID
+INVALID: [State the exact mechanical reason why it fails]
 
-<scene>
-{scene}
-</scene>
-
-<available_abilities>
-{technique_summary}
-</available_abilities>
-
-<examples>
-VIOLATION: "Character A summoned a wall of fire" (when not in their abilities list) → YES
-VIOLATION: "Character B dodged at the speed of light" (defying world rules) → YES
-NON-VIOLATION: "Character C hardened their armor and blocked the strike" (using listed ability) → NO
-</examples>
-
-<response_to_validate>
-{response}
-</response_to_validate>
-
-Does the response violate the world rules, scene constraints, or use abilities a character doesn't have? Answer only YES or NO.
-Your answer:"""
-    return ask(prompt)
+User Action: {response}"""
+    
+    # Because ask() returns (content, p_tokens, c_tokens), 
+    # validate() will seamlessly return that same tuple back to chat.py!
+    return ask(prompt, system="You are a strict referee. Output only VALID or INVALID: [reason].")
