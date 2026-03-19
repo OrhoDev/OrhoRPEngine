@@ -102,12 +102,10 @@ def chat(context):
             elif result is True:
                 break
             continue
-
         math_cfg = state.config.get("system_math", {})
         e_name = math_cfg.get("energy_stat", "MP")
 
-        is_combat, tech_name = is_combat_move(user_input, context)
-     # --- SAFE COMBAT MATH CHECK ---
+        # --- SAFE COMBAT MATH CHECK ---
         is_combat, tech_name = is_combat_move(user_input, context)
         if is_combat:
             active_char = get_active_character(context, context['user_character'])

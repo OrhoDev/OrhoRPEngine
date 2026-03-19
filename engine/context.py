@@ -281,9 +281,6 @@ def build_prompt(context, user_input, npc_decisions=""):
 {char_text}
 
 {combat_status_text}
-
-# RELEVANT MECHANICS
-{mechanics_block}
 </engine_data>{pinned_text}
 
 <history>
@@ -294,15 +291,22 @@ def build_prompt(context, user_input, npc_decisions=""):
 {context['user_character']} action: "{user_input}"
 </user_action>
 
-{resolved_block}[SYSTEM COMMAND: EXECUTE SIMULATION TICK]
+{resolved_block}
+
+[RELEVANT MECHANICS - MANDATORY ADHERENCE]
+{mechanics_block}
+
+[SYSTEM COMMAND: EXECUTE SIMULATION TICK]
 ALLOWED TO ACT/SPEAK: {npc_string}
 FORBIDDEN TO ACT/SPEAK: {context['user_character']}
-INSTRUCTION: The <resolved_npc_actions> block contains exactly what each NPC decided to do this turn. Narrate those decisions using the technique mechanics above. Do not invent new actions. Do not override the decisions.
-CRITICAL: The <narration> block must NEVER describe {context['user_character']}'s body, movements, eyes, hands, or internal state. Begin narration with environmental or mechanical consequence of the action only.
+INSTRUCTION: Resolve every action declared in <user_action> and <resolved_npc_actions> to its final physical conclusion. 
+CRITICAL RULES:
+1. NO STALLING: Do not use verbs of 'attempt' or 'beginning'. A projectile must either IMPACT a target or be DEFLECTED. 
+2. COLLISION PHYSICS: Use the 'Mechanics' provided below to determine if a character's defense is mathematically capable of stopping the incoming attack. If no counter-technique is listed, the attack connects.
+3. RESULT FIRST: Start each beat with the physical result (impact, collision, or miss), then describe the anatomical or environmental trauma.
+4. NO USER DESCRIPTION: Never describe {context['user_character']}'s body, intent, or speech. 
 AGENTIC HOOKS: 
-- If an attack lands and damages someone, output[SYS_COMMAND: /damage 20 CharacterName] (Value: 10 for light, 30 for heavy, 50+ for fatal).
-- If someone heals, output [SYS_COMMAND: /heal 20 CharacterName].
-- If an entity is summoned, output [SYS_COMMAND: /spawn "EntityName"].
-- If the environment changes significantly (e.g., a building collapses, moving outside), output <scene_update>New Scene Description</scene_update>.
-Task: Start your response immediately with <analysis>. Do not write any text before the <analysis> tag.
+- Output [SYS_COMMAND: /damage value Target] if a hit lands.
+- Output <scene_update> if the environment shifts.
+Task: Start immediately with <analysis>.
 """
