@@ -186,6 +186,8 @@ spirit_swarm, divine_dog_totality, nue, rabbit_escape
 [RELATIONSHIP INSTRUCTIONS]
 - REFER TO <social_map>: Do not attack characters listed as allies, family, or friends unless NPC's Goals/Psychology explicitly demand betrayal.
 - CHECK COMBAT STATE: If any character has taken damage or used energy, the scene is in COMBAT. NPCs must act tactically.
+- TARGETING: If a character has the 'Incapacitated' condition, they are DEFEATED. NPCs must stop attacking them and pivot to the next enemy or check on allies.
+- PROGRESSION: Do not repeat 'approaching' or 'closing in' for multiple turns. If an NPC was 'closing in' last turn, they MUST land their strike or perform their technique this turn.
 - Output ONLY raw JSON matching this structure:
 {json_template}
 """
@@ -305,10 +307,10 @@ CRITICAL RULES:
 3. RESULT FIRST: Start each beat with the physical result, then describe the proportional trauma.
 4. NO USER DESCRIPTION: Never describe {context['user_character']}'s body, intent, or speech. 
 AGENTIC HOOKS (MUST USE EXACT BRACKET SYNTAX): 
-- If a hit lands, check the [LETHALITY] tag in the 'Mechanics' block. 
-- Output EXACTLY: [SYS_COMMAND: /damage value Target]
-- USE THESE VALUES: Trivial=10, Moderate=30, Lethal=50, Catastrophic=80+.
-- CRITICAL: Never output the command twice. Resolve the impact in the text, then output the command at the very end of the paragraph.
+- If a hit lands, output EXACTLY: [SYS_COMMAND: /damage 20 CharacterName] (10=light, 30=heavy, 50=massive).
+- SUMMATIVE DAMAGE: Calculate the total HP loss for each character from ALL sources this turn (e.g., User attack + NPC ally follow-up). 
+- Output EXACTLY one [SYS_COMMAND: /damage total_value Target] per wounded character at the end of the narration.
+- If Character A kicks Character C and Character B pierces him, Character C should take the sum of both (e.g., 30 + 10 = 40).
 - If the environment changes, output EXACTLY: <scene_update>New Scene Description</scene_update>
 Task: Start immediately with <analysis>.
 """

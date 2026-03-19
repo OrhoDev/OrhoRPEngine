@@ -270,15 +270,12 @@ RULES:
             except Exception as e:
                 print(f"  >[SYSTEM LOG]: Local compactor unavailable, skipping compression. Error: {e}")
 
-        # --- AGENTIC COMMANDS (ROBUST CATCH) ---
-        # Catches standard [SYS_COMMAND: /cmd args]
+        # --- AGENTIC COMMANDS (UNIQUE CATCH) ---
         sys_command_matches = re.findall(r"\[SYS_COMMAND:\s*(.*?)\]", response)
-        
-        # Failsafe: Catches rogue unbracketed commands like "/damage 30 Geto" floating in the text
-        # Tightened regex to stop before brackets or trailing punctuation
         rogue_matches = re.findall(r"(/(?:damage|heal|spawn|condition|scene|add|remove)\s+[0-9a-zA-Z_: ]+)", response)
         
-        all_commands = sys_command_matches + rogue_matches
+        # Use a SET to ensure we never run the same command string twice in one turn
+        all_commands = list(set(sys_command_matches + rogue_matches))
         
         if all_commands:
             print("\n[AI SYSTEM EVENT DETECTED]")
@@ -418,6 +415,9 @@ def handle_command(user_input, context):
                 amt = int(math_parts[0])
                 target = get_active_character(context, math_parts[1])
                 if target:
+                    if "Incapacitated" in target["state"]["conditions"]:
+                        return # Stop hitting dead bodies
+                    
                     stats = target["state"]["stats"]
                     h_name = state.config.get("system_math", {}).get("health_stat", "HP")
                     
