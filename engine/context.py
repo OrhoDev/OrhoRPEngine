@@ -296,17 +296,19 @@ def build_prompt(context, user_input, npc_decisions=""):
 [RELEVANT MECHANICS - MANDATORY ADHERENCE]
 {mechanics_block}
 
-[SYSTEM COMMAND: EXECUTE SIMULATION TICK]
 ALLOWED TO ACT/SPEAK: {npc_string}
 FORBIDDEN TO ACT/SPEAK: {context['user_character']}
 INSTRUCTION: Resolve every action declared in <user_action> and <resolved_npc_actions> to its final physical conclusion. 
 CRITICAL RULES:
-1. NO STALLING: Do not use verbs of 'attempt' or 'beginning'. A projectile must either IMPACT a target or be DEFLECTED. 
-2. COLLISION PHYSICS: Use the 'Mechanics' provided below to determine if a character's defense is mathematically capable of stopping the incoming attack. If no counter-technique is listed, the attack connects.
-3. RESULT FIRST: Start each beat with the physical result (impact, collision, or miss), then describe the anatomical or environmental trauma.
+1. NO STALLING: Do not use verbs of 'attempt' or 'beginning'. A projectile must either IMPACT a target, MISS, or be DEFLECTED. 
+2. COLLISION PHYSICS: Use the 'Mechanics' below to determine if a defense stops an attack.
+3. RESULT FIRST: Start each beat with the physical result, then describe the proportional trauma.
 4. NO USER DESCRIPTION: Never describe {context['user_character']}'s body, intent, or speech. 
-AGENTIC HOOKS: 
-- Output [SYS_COMMAND: /damage value Target] if a hit lands.
-- Output <scene_update> if the environment shifts.
+AGENTIC HOOKS (MUST USE EXACT BRACKET SYNTAX): 
+- If a hit lands, check the [LETHALITY] tag in the 'Mechanics' block. 
+- Output EXACTLY: [SYS_COMMAND: /damage value Target]
+- USE THESE VALUES: Trivial=10, Moderate=30, Lethal=50, Catastrophic=80+.
+- CRITICAL: Never output the command twice. Resolve the impact in the text, then output the command at the very end of the paragraph.
+- If the environment changes, output EXACTLY: <scene_update>New Scene Description</scene_update>
 Task: Start immediately with <analysis>.
 """

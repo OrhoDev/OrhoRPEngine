@@ -123,7 +123,8 @@ def chat(context):
             cooldowns = active_char["state"]["cooldowns"]
             stats = active_char["state"]["stats"]
             current_statuses = active_char["state"].get("status_effects", {})
-            blockers =["stunned", "burnout", "paralyzed", "unconscious", "frozen"]
+            # Add 'incapacitated' to the blockers list
+            blockers =["stunned", "burnout", "paralyzed", "unconscious", "frozen", "incapacitated"]
             active_blockers = [s for s in current_statuses if s.lower() in blockers]
 
             if active_blockers:
@@ -269,14 +270,30 @@ RULES:
             except Exception as e:
                 print(f"  >[SYSTEM LOG]: Local compactor unavailable, skipping compression. Error: {e}")
 
+        # --- AGENTIC COMMANDS (ROBUST CATCH) ---
+        # Catches standard [SYS_COMMAND: /cmd args]
         sys_command_matches = re.findall(r"\[SYS_COMMAND:\s*(.*?)\]", response)
-        if sys_command_matches:
-            for cmd in sys_command_matches:
-                handle_command(cmd, context)
+        
+        # Failsafe: Catches rogue unbracketed commands like "/damage 30 Geto" floating in the text
+        # Tightened regex to stop before brackets or trailing punctuation
+        rogue_matches = re.findall(r"(/(?:damage|heal|spawn|condition|scene|add|remove)\s+[0-9a-zA-Z_: ]+)", response)
+        
+        all_commands = sys_command_matches + rogue_matches
+        
+        if all_commands:
+            print("\n[AI SYSTEM EVENT DETECTED]")
+            for cmd in all_commands:
+                # Clean up any trailing punctuation from rogue matches
+                clean_cmd = cmd.strip(' .,"\'')
+                print(f"  > Executing Agent Command: {clean_cmd}")
+                handle_command(clean_cmd, context)
 
         final_output = narration_match.group(1).strip() if narration_match else "(No narration block returned.)"
 
-        final_output = re.sub(r"\[SYS_COMMAND:\s*.*?\]", "", final_output).strip()
+        # --- THE LOOPBACK GLITCH FIX ---
+        # Scrub both formats from the final narration so they don't print or enter history
+        final_output = re.sub(r"\[SYS_COMMAND:\s*.*?\]", "", final_output)
+        final_output = re.sub(r"/(?:damage|heal|spawn|condition|scene|add|remove)\s+[^\n<\[]+", "", final_output).strip()
 
         clean_lines = []
         for line in final_output.split('\n'):
@@ -406,6 +423,12 @@ def handle_command(user_input, context):
                     
                     if command == "/damage":
                         stats["hp"] -= amt
+                        if stats["hp"] <= 0:
+                            stats["hp"] = 0
+                            # Automatically add the 'Incapacitated' condition
+                            if "Incapacitated" not in target["state"]["conditions"]:
+                                target["state"]["conditions"].append("Incapacitated")
+                            print(f"  [!] CRITICAL: {target['name']} has been defeated.")
                     else:
                         stats["hp"] = min(stats["max_hp"], stats["hp"] + amt)
             except ValueError:
