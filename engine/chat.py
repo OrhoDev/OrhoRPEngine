@@ -235,7 +235,7 @@ def chat(context):
                         char_name = parts[0].strip()
                         new_condition = parts[1].strip()
 
-                        if char_name and new_condition:
+                        if char_name and len(new_condition) > 1: # Ignore '0' or 'x' hallucinations
                             target_char = get_active_character(context, char_name)
                             if target_char:
                                 if new_condition not in target_char["state"]["conditions"]:
